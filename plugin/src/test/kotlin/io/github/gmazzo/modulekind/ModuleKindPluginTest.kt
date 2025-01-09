@@ -1,8 +1,11 @@
 package io.github.gmazzo.modulekind
 
 import org.gradle.api.Project
+import org.gradle.api.artifacts.ResolveException
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
+import org.gradle.api.internal.catalog.problems.ResolutionFailureProblemId
 import org.gradle.api.provider.Property
+import org.gradle.internal.component.resolution.failure.exception.VariantSelectionByAttributesException
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.get
@@ -11,7 +14,9 @@ import org.gradle.kotlin.dsl.the
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import kotlin.apply as kotlinApply
@@ -57,8 +62,8 @@ class ModuleKindPluginTest {
     }
 
     @ParameterizedTest
-    @MethodSource("testCases")
-    fun `classpath can be resolved`(
+    @MethodSource("validTestCases")
+    fun `when graph is valid, classpath can be resolved`(
         project: Project,
         configuration: String,
         expectedDependencies: Set<Project>,
@@ -70,7 +75,7 @@ class ModuleKindPluginTest {
         assertEquals(expected, resolved)
     }
 
-    fun testCases() = listOf(
+    fun validTestCases() = listOf(
         arrayOf(feature1Api, "compileClasspath", emptySet<Project>()),
         arrayOf(feature1Api, "runtimeClasspath", emptySet<Project>()),
         arrayOf(feature2Api, "compileClasspath", emptySet<Project>()),
@@ -90,5 +95,23 @@ class ModuleKindPluginTest {
             setOf(feature1Impl, feature2Impl, feature3Impl, feature1Api, feature2Api, feature3Api)
         ),
     )
+
+    @Test
+    fun `when an implementation depends on another implementation, it fails`() {
+        val child = createProject(name = "child", kind = "implementation")
+        child.dependencies {
+            "implementation"(feature1Impl)
+        }
+
+        val exception = assertThrows<ResolveException> {
+            child.configurations["runtimeClasspath"].resolve()
+        }
+
+        assertEquals("Could not resolve all files for configuration ':child:runtimeClasspath'.", exception.message)
+
+        val failure = (exception.cause?.cause as VariantSelectionByAttributesException).failure
+        assertEquals(ResolutionFailureProblemId.NO_COMPATIBLE_VARIANTS, failure.problemId)
+        assertEquals("api", failure.requestedAttributes.getAttribute(MODULE_KIND_ATTRIBUTE))
+    }
 
 }

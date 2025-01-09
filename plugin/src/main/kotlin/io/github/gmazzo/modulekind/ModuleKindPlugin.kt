@@ -3,7 +3,6 @@ package io.github.gmazzo.modulekind
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.attributes.Attribute
 import org.gradle.api.plugins.JvmEcosystemPlugin
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
@@ -17,8 +16,6 @@ import org.gradle.kotlin.dsl.the
 import org.gradle.kotlin.dsl.typeOf
 
 class ModuleKindPlugin : Plugin<Project> {
-
-    private val attribute = Attribute.of("io.github.gmazzo.modulekind", String::class.java)
 
     private val constrainsType = typeOf<NamedDomainObjectContainer<ModuleKindConstrain>>()
 
@@ -49,14 +46,14 @@ class ModuleKindPlugin : Plugin<Project> {
         the<SourceSetContainer>().configureEach {
             sequenceOf(apiElementsConfigurationName, runtimeElementsConfigurationName)
                 .mapNotNull(configurations::findByName)
-                .forEach { it.attributes.attributeProvider(attribute, kind) }
+                .forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, kind) }
 
             sequenceOf(compileClasspathConfigurationName, runtimeClasspathConfigurationName)
                 .mapNotNull(configurations::findByName)
-                .forEach { it.attributes.attributeProvider(attribute, compatibilities) }
+                .forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, compatibilities) }
         }
 
-        dependencies.attributesSchema.attribute(attribute) {
+        dependencies.attributesSchema.attribute(MODULE_KIND_ATTRIBUTE) {
             compatibilityRules.add(ModuleKindCompatibilityRule::class) {
                 params(constrains)
             }
