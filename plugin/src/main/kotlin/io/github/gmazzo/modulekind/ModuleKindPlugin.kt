@@ -2,8 +2,10 @@ package io.github.gmazzo.modulekind
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.JvmEcosystemPlugin
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.kotlin.dsl.add
 import org.gradle.kotlin.dsl.create
@@ -20,10 +22,7 @@ class ModuleKindPlugin : Plugin<Project> {
         val extension = findOrCreateExtension()
 
         plugins.withType<JvmEcosystemPlugin> {
-            val kind = objects.property<String>().apply {
-                finalizeValueOnRead()
-                extensions.add(typeOf<Property<String>>(), "moduleKind", this)
-            }
+            val projectKind = createKindExtension()
 
             val transitive by lazy(extension.transitiveCompatibility::get)
 
@@ -35,14 +34,16 @@ class ModuleKindPlugin : Plugin<Project> {
                 return set
             }
 
-            val compatibilities = extension.constrainsAsMap
-                .zip(kind, Map<String, Set<String>>::resolveTo)
-                .map { it.joinToString(separator = "|") }
+            the<SourceSetContainer>().configureEach ss@{
+                val ssKind = createKindExtension(this@ss, convention = projectKind)
 
-            the<SourceSetContainer>().configureEach {
+                val compatibilities = extension.constrainsAsMap
+                    .zip(ssKind, Map<String, Set<String>>::resolveTo)
+                    .map { it.joinToString(separator = "|") }
+
                 sequenceOf(apiElementsConfigurationName, runtimeElementsConfigurationName)
                     .mapNotNull(configurations::findByName)
-                    .forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, kind) }
+                    .forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, ssKind) }
 
                 sequenceOf(compileClasspathConfigurationName, runtimeClasspathConfigurationName)
                     .mapNotNull(configurations::findByName)
@@ -53,6 +54,15 @@ class ModuleKindPlugin : Plugin<Project> {
                 compatibilityRules.add(ModuleKindCompatibilityRule::class)
             }
         }
+    }
+
+    private fun Project.createKindExtension(
+        on: ExtensionAware = this,
+        convention: Provider<String>? = null,
+    ) = objects.property<String>().apply {
+        convention?.let(::convention)
+        finalizeValueOnRead()
+        on.extensions.add(typeOf<Property<String>>(), "moduleKind", this)
     }
 
     private fun Project.findOrCreateExtension() = generateSequence(project, Project::getParent)
