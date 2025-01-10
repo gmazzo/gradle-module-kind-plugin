@@ -10,3 +10,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+
+rootProject.name = "plugin"

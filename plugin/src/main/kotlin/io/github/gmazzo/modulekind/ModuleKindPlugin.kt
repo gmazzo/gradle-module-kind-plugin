@@ -34,8 +34,19 @@ class ModuleKindPlugin : Plugin<Project> {
                 return set
             }
 
+            val isRoot = project.extensions.findByType<ModuleKindConstrainsExtension>() != null
+
             the<SourceSetContainer>().configureEach ss@{
-                val ssKind = createKindExtension(this@ss, convention = projectKind)
+
+                val ssKind = createKindExtension(this@ss, convention = projectKind).let {
+                    val missingValue = lazy {
+                        logger.warn("module kind not set for project '$path', source set '${this@ss.name}'. i.e. 'moduleKind = \"implementation\"'")
+                        ""
+                    }
+
+                    if (isRoot) it
+                    else it.orElse(provider(missingValue::value))
+                }
 
                 val compatibilities = extension.constrainsAsMap
                     .zip(ssKind, Map<String, Set<String>>::resolveTo)
