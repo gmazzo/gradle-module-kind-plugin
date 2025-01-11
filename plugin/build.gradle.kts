@@ -32,10 +32,15 @@ gradlePlugin {
 }
 
 dependencies {
+    fun DependencyHandlerScope.plugin(provider: Provider<PluginDependency>) =
+        provider.get().run { "$pluginId:$pluginId.gradle.plugin:$version" }
+
     compileOnly(gradleKotlinDsl())
+    compileOnly(plugin(libs.plugins.android.application))
     
     testImplementation(gradleKotlinDsl())
     testImplementation(gradleTestKit())
+    testImplementation(plugin(libs.plugins.android.application))
 }
 
 testing.suites.withType<JvmTestSuite> {

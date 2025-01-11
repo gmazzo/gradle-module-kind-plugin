@@ -2,6 +2,7 @@ package io.github.gmazzo.modulekind
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.JvmEcosystemPlugin
 import org.gradle.api.provider.Property
@@ -14,51 +15,30 @@ import org.gradle.kotlin.dsl.property
 import org.gradle.kotlin.dsl.the
 import org.gradle.kotlin.dsl.typeOf
 import org.gradle.kotlin.dsl.withType
+import javax.inject.Inject
 
-class ModuleKindPlugin : Plugin<Project> {
+class ModuleKindPlugin @Inject constructor(
+    private val objects: ObjectFactory,
+) : Plugin<Project> {
 
     override fun apply(target: Project): Unit = with(target) {
 
         val extension = findOrCreateExtension()
 
         plugins.withType<JvmEcosystemPlugin> {
-            val projectKind = createKindExtension()
-
-            val transitive by lazy(extension.transitiveCompatibility::get)
-
-            fun Map<String, Set<String>>.resolveTo(
-                kind: String,
-                set: MutableSet<String> = linkedSetOf(),
-            ): Set<String> {
-                get(kind)?.forEach { if (set.add(it) && transitive) resolveTo(it, set) }
-                return set
-            }
+            val projectKind = createKindExtension(project)
 
             val isRoot = project.extensions.findByType<ModuleKindConstrainsExtension>() != null
 
             the<SourceSetContainer>().configureEach ss@{
-
-                val ssKind = createKindExtension(this@ss, convention = projectKind).let {
-                    val missingValue = lazy {
-                        logger.warn("module kind not set for project '$path', source set '${this@ss.name}'. i.e. 'moduleKind = \"implementation\"'")
-                        ""
-                    }
-
-                    if (isRoot) it
-                    else it.orElse(provider(missingValue::value))
-                }
-
-                val compatibilities = extension.constrainsAsMap
-                    .zip(ssKind, Map<String, Set<String>>::resolveTo)
-                    .map { it.joinToString(separator = "|") }
-
-                sequenceOf(apiElementsConfigurationName, runtimeElementsConfigurationName)
-                    .mapNotNull(configurations::findByName)
-                    .forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, ssKind) }
-
-                sequenceOf(compileClasspathConfigurationName, runtimeClasspathConfigurationName)
-                    .mapNotNull(configurations::findByName)
-                    .forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, compatibilities) }
+                configure(
+                    this,
+                    this@ss.name,
+                    "source set", projectKind, extension,
+                    sequenceOf(apiElementsConfigurationName, runtimeElementsConfigurationName),
+                    sequenceOf(compileClasspathConfigurationName, runtimeClasspathConfigurationName),
+                    warnIfMissingKind = !isRoot
+                )
             }
 
             dependencies.attributesSchema.attribute(MODULE_KIND_ATTRIBUTE) {
@@ -67,8 +47,8 @@ class ModuleKindPlugin : Plugin<Project> {
         }
     }
 
-    private fun Project.createKindExtension(
-        on: ExtensionAware = this,
+    private fun createKindExtension(
+        on: ExtensionAware,
         convention: Provider<String>? = null,
     ) = objects.property<String>().apply {
         convention?.let(::convention)
@@ -108,5 +88,55 @@ class ModuleKindPlugin : Plugin<Project> {
             .convention(true)
             .finalizeValueOnRead()
     }
+
+    private fun Project.configure(
+        target: ExtensionAware,
+        targetName: String,
+        targetDescription: String,
+        defaultKind: Provider<String>,
+        extension: ModuleKindConstrainsExtensionInternal,
+        elementsConfigurations: Sequence<String>,
+        classpathConfigurations: Sequence<String>,
+        warnIfMissingKind: Boolean,
+    ) {
+
+        val missingValue = lazy {
+            if (warnIfMissingKind) {
+                logger.warn(
+                    "'moduleKind' not set for project '{}', {} '{}'. i.e. 'moduleKind = \"implementation\"'",
+                    path,
+                    targetDescription,
+                    targetName
+                )
+            }
+            MODULE_KIND_MISSING
+        }
+
+        val kind = createKindExtension(target, convention = defaultKind)
+            .orElse(provider(missingValue::value))
+
+        val compatibilities = extension.constrainsAsMap
+            .zip(kind) { constraints, kind -> constraints.resolveCompatibility(kind, extension.transitiveCompatibility.get()) }
+            .map { it.joinToString(separator = "|") }
+
+        elementsConfigurations
+            .mapNotNull(configurations::findByName)
+            .forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, kind) }
+
+        classpathConfigurations
+            .mapNotNull(configurations::findByName)
+            .forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, compatibilities) }
+    }
+
+    private fun Map<String, Set<String>>.resolveCompatibility(
+        forKind: String,
+        transitive: Boolean,
+        into: MutableSet<String> = linkedSetOf(),
+        ): Set<String> {
+        if (forKind == MODULE_KIND_MISSING) return setOf(MODULE_KIND_MISSING)
+        get(forKind)?.forEach { if (into.add(it) && transitive) resolveCompatibility(it, true, into) }
+        return into
+    }
+
 
 }

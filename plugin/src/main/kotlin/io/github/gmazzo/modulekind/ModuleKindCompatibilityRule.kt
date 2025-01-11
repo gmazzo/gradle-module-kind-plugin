@@ -6,7 +6,9 @@ import org.gradle.api.attributes.CompatibilityCheckDetails
 class ModuleKindCompatibilityRule : AttributeCompatibilityRule<String> {
 
     override fun execute(details: CompatibilityCheckDetails<String>): Unit = with(details) {
-        if (producerValue in consumerValue?.split('|').orEmpty()) {
+        if (producerValue == MODULE_KIND_MISSING ||
+            consumerValue == MODULE_KIND_MISSING ||
+            producerValue in consumerValue?.split('|').orEmpty()) {
             compatible()
         }
     }
