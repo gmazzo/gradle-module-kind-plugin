@@ -1,7 +1,6 @@
 package io.github.gmazzo.modulekind
 
 import org.gradle.api.NamedDomainObjectContainer
-import org.gradle.api.provider.Property
 
 @JvmDefaultWithoutCompatibility
 interface ModuleKindConstrainsExtension {
@@ -21,22 +20,6 @@ interface ModuleKindConstrainsExtension {
     fun compatibility(kind: String, compatibleWith: ModuleKindConstrain, vararg andOthers: ModuleKindConstrain) {
         constrains.maybeCreate(kind).compatibleWith(compatibleWith, *andOthers)
     }
-
-    /**
-     * Where the module kind compatibility is transitive declared at [ModuleKindConstrain.compatibleWith] or not.
-     *
-     * For instance, given:
-     * ```kotlin
-     * moduleKindConstrains {
-     *    compatibility("implementation", "api")
-     *    compatibility("monolith", "implementation")
-     *    transitiveCompatibility = true
-     * }
-     * ```
-     *
-     * Will imply that `monolith` is compatible with `api` as well, as `implementation` is compatible with `api`.
-     */
-    val transitiveCompatibility: Property<Boolean>
 
     /**
      * Declares that a module kind of [this] is compatible with another of kind [compatibleWith].

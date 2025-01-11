@@ -83,10 +83,6 @@ class ModuleKindPlugin @Inject constructor(
             )
             finalizeValueOnRead()
         }
-
-        transitiveCompatibility
-            .convention(true)
-            .finalizeValueOnRead()
     }
 
     private fun Project.configure(
@@ -116,7 +112,7 @@ class ModuleKindPlugin @Inject constructor(
             .orElse(provider(missingValue::value))
 
         val compatibilities = extension.constrainsAsMap
-            .zip(kind) { constraints, kind -> constraints.resolveCompatibility(kind, extension.transitiveCompatibility.get()) }
+            .zip(kind) { constraints, kind -> constraints.resolveCompatibility(kind) }
             .map { it.joinToString(separator = "|") }
 
         elementsConfigurations
@@ -130,11 +126,10 @@ class ModuleKindPlugin @Inject constructor(
 
     private fun Map<String, Set<String>>.resolveCompatibility(
         forKind: String,
-        transitive: Boolean,
         into: MutableSet<String> = linkedSetOf(),
         ): Set<String> {
         if (forKind == MODULE_KIND_MISSING) return setOf(MODULE_KIND_MISSING)
-        get(forKind)?.forEach { if (into.add(it) && transitive) resolveCompatibility(it, true, into) }
+        get(forKind)?.forEach { if (into.add(it)) resolveCompatibility(it, into) }
         return into
     }
 

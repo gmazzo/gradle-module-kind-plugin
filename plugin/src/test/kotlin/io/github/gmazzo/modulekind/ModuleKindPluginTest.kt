@@ -30,75 +30,56 @@ class ModuleKindPluginTest {
         target: Project,
         configuration: String,
         expectedDependencies: Set<Project>,
-        expectedKindFailure: String? = null,
     ) = fixtures {
-        if (expectedKindFailure == null) {
-            val expected = expectedDependencies.mapTo(linkedSetOf()) { it.path }
-            val resolved = target.configurations[configuration].incoming.artifacts.artifacts
-                .mapTo(linkedSetOf()) { (it.id.componentIdentifier as ProjectComponentIdentifier).projectPath }
+        val expected = expectedDependencies.mapTo(linkedSetOf()) { it.path }
+        val resolved = target.configurations[configuration].incoming.artifacts.artifacts
+            .mapTo(linkedSetOf()) { (it.id.componentIdentifier as ProjectComponentIdentifier).projectPath }
 
-            assertEquals(expected, resolved)
-
-        } else {
-            testFailToResolve(target, expectedKind = expectedKindFailure)
-        }
+        assertEquals(expected, resolved)
     }
 
-    fun testCases() = sequenceOf(
-        Fixtures.Default,
-        Fixtures.Transitive,
-        Fixtures.NonTransitive,
-    ).flatMap { fixture ->
-        with(fixture) {
-            sequenceOf(
-                arrayOf(fixture, feature1Api, "compileClasspath", emptySet<Project>(), null),
-                arrayOf(fixture, feature1Api, "runtimeClasspath", emptySet<Project>(), null),
-                arrayOf(fixture, feature2Api, "compileClasspath", emptySet<Project>(), null),
-                arrayOf(fixture, feature2Api, "runtimeClasspath", emptySet<Project>(), null),
-                arrayOf(fixture, feature3Api, "compileClasspath", emptySet<Project>(), null),
-                arrayOf(fixture, feature3Api, "runtimeClasspath", emptySet<Project>(), null),
-                arrayOf(fixture, feature1Impl, "compileClasspath", setOf(feature1Api), null),
-                arrayOf(fixture, feature1Impl, "runtimeClasspath", setOf(feature1Api), null),
-                arrayOf(fixture, feature2Impl, "compileClasspath", setOf(feature2Api), null),
-                arrayOf(fixture, feature2Impl, "runtimeClasspath", setOf(feature2Api), null),
-                arrayOf(fixture, feature3Impl, "compileClasspath", setOf(feature1Api, feature2Api, feature3Api), null),
-                arrayOf(fixture, feature3Impl, "runtimeClasspath", setOf(feature1Api, feature2Api, feature3Api), null),
-                arrayOf(fixture, monolith, "compileClasspath", setOf(feature1Impl, feature2Impl, feature3Impl), null),
-                arrayOf(
-                    fixture, monolith, "runtimeClasspath",
-                    setOf(feature1Impl, feature2Impl, feature3Impl, feature1Api, feature2Api, feature3Api),
-                    "monolith|implementation".takeIf { fixture == Fixtures.NonTransitive }
-                ),
-            )
-        }
-    }.iterator()
+    fun testCases() = Fixtures.Default {
+        listOf(
+            arrayOf(this, feature1Api, "compileClasspath", emptySet<Project>()),
+            arrayOf(this, feature1Api, "runtimeClasspath", emptySet<Project>()),
+            arrayOf(this, feature2Api, "compileClasspath", emptySet<Project>()),
+            arrayOf(this, feature2Api, "runtimeClasspath", emptySet<Project>()),
+            arrayOf(this, feature3Api, "compileClasspath", emptySet<Project>()),
+            arrayOf(this, feature3Api, "runtimeClasspath", emptySet<Project>()),
+            arrayOf(this, feature1Impl, "compileClasspath", setOf(feature1Api)),
+            arrayOf(this, feature1Impl, "runtimeClasspath", setOf(feature1Api)),
+            arrayOf(this, feature2Impl, "compileClasspath", setOf(feature2Api)),
+            arrayOf(this, feature2Impl, "runtimeClasspath", setOf(feature2Api)),
+            arrayOf(this, feature3Impl, "compileClasspath", setOf(feature1Api, feature2Api, feature3Api)),
+            arrayOf(this, feature3Impl, "runtimeClasspath", setOf(feature1Api, feature2Api, feature3Api)),
+            arrayOf(this, monolith, "compileClasspath", setOf(feature1Impl, feature2Impl, feature3Impl)),
+            arrayOf(
+                this, monolith, "runtimeClasspath",
+                setOf(feature1Impl, feature2Impl, feature3Impl, feature1Api, feature2Api, feature3Api),
+            ),
+        )
+    }
 
     @Test
     fun `when an implementation depends on another implementation, it fails`() = Fixtures.Invalid {
-        testFailToResolve(violatingModule, expectedKind = "api")
-    }
-
-    private fun testFailToResolve(target: Project, expectedKind: String) {
         val exception = assertThrows<ResolveException> {
-            target.configurations["runtimeClasspath"].resolve()
+            violatingModule.configurations["runtimeClasspath"].resolve()
         }
 
         assertEquals(
-            "Could not resolve all files for configuration '${target.path}:runtimeClasspath'.",
+            "Could not resolve all files for configuration '${violatingModule.path}:runtimeClasspath'.",
             exception.message
         )
 
         val failure = (exception.cause?.cause as VariantSelectionByAttributesException).failure
         assertEquals(ResolutionFailureProblemId.NO_COMPATIBLE_VARIANTS, failure.problemId)
-        assertEquals(expectedKind, failure.requestedAttributes.getAttribute(MODULE_KIND_ATTRIBUTE))
+        assertEquals("api", failure.requestedAttributes.getAttribute(MODULE_KIND_ATTRIBUTE))
     }
 
-    sealed class Fixtures(transitive: Boolean?) {
+    sealed class Fixtures {
 
-        data object Default : Fixtures(transitive = null)
-        data object Transitive : Fixtures(transitive = true)
-        data object NonTransitive : Fixtures(transitive = false)
-        data object Invalid : Fixtures(transitive = true) {
+        data object Default : Fixtures()
+        data object Invalid : Fixtures() {
             val violatingModule = createProject(name = "violatingModule", kind = "implementation", feature1Impl)
         }
 
@@ -111,10 +92,6 @@ class ModuleKindPluginTest {
         val feature3Impl =
             createProject(name = "feature3-impl", kind = "implementation", feature3Api, feature1Api, feature2Api)
         val monolith = createProject(name = "monolith", kind = "monolith", feature1Impl, feature2Impl, feature3Impl)
-
-        init {
-            transitive?.let(rootProject.moduleKindConstrains.transitiveCompatibility::value)
-        }
 
         fun createProject(name: String, kind: String? = null, vararg dependsOn: Project): Project =
             ProjectBuilder.builder().withName(name).withParent(rootProject).build().kotlinApply {
@@ -131,10 +108,9 @@ class ModuleKindPluginTest {
             }
 
         val Project.moduleKind get() = the<Property<String>>()
-        val Project.moduleKindConstrains get() = the<ModuleKindConstrainsExtension>()
 
         companion object {
-            operator fun <Fixture : Fixtures> Fixture.invoke(block: Fixture.() -> Unit) = block()
+            operator fun <Fixture : Fixtures, Return> Fixture.invoke(block: Fixture.() -> Return) = block()
         }
 
     }
