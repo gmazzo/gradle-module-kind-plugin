@@ -15,5 +15,4 @@ android {
 
 dependencies {
     implementation(projects.demo.featureLoginApi)
-    implementation(projects.demo.featureListingImpl)
 }
