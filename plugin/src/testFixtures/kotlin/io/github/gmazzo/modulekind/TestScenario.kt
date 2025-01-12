@@ -68,7 +68,6 @@ sealed class TestScenario(android: Boolean = false) {
     }
 
     val Project.moduleKind get() = the<Property<String>>()
-    val Project.moduleKindConstrains get() = the<ModuleKindConstrainsExtension>()
 
     companion object {
         operator fun <Scenario : TestScenario, Return> Scenario.invoke(block: Scenario.() -> Return) = block()

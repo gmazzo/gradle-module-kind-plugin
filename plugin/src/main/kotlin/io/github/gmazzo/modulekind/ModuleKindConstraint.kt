@@ -4,7 +4,7 @@ import org.gradle.api.Named
 import org.gradle.api.provider.SetProperty
 
 @JvmDefaultWithoutCompatibility
-interface ModuleKindConstrain : Named {
+interface ModuleKindConstraint : Named {
 
     val compatibleWith: SetProperty<String>
 
@@ -12,7 +12,7 @@ interface ModuleKindConstrain : Named {
         compatibleWith.add(other)
     }
 
-    infix fun compatibleWith(other: ModuleKindConstrain) {
+    infix fun compatibleWith(other: ModuleKindConstraint) {
         compatibleWith.add(other.name)
     }
 
@@ -20,7 +20,7 @@ interface ModuleKindConstrain : Named {
         compatibleWith.addAll(others.toList())
     }
 
-    fun compatibleWith(vararg others: ModuleKindConstrain) {
+    fun compatibleWith(vararg others: ModuleKindConstraint) {
         compatibleWith.addAll(others.map { it.name })
     }
 

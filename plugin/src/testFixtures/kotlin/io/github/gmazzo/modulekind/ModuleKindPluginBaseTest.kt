@@ -58,7 +58,7 @@ abstract class ModuleKindPluginBaseTest(vararg scenarios: TestScenario) {
 
     @Test
     fun `constraints instance is the same on all modules`() = TestScenario.Default {
-        val expected = rootProject.the<ModuleKindConstrainsExtension>()
+        val expected = rootProject.the<ModuleKindConstraintsExtension>()
 
         rootProject.allprojects {
             val actual = with(rootProject.plugins.getPlugin(ModuleKindPlugin::class)) {

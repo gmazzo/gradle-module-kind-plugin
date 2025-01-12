@@ -35,7 +35,7 @@ gradlePlugin {
 val androidTestSuite = testing.suites.register<JvmTestSuite>("androidTest")
 
 dependencies {
-    fun DependencyHandlerScope.plugin(provider: Provider<PluginDependency>) =
+    fun plugin(provider: Provider<PluginDependency>) =
         provider.get().run { "$pluginId:$pluginId.gradle.plugin:$version" }
 
     compileOnly(gradleKotlinDsl())

@@ -1,5 +1,7 @@
 package io.github.gmazzo.modulekind
 
+import com.android.build.api.variant.AndroidComponentsExtension
+import io.github.gmazzo.modulekind.ModuleKindConstraintsExtension.OnMissingKind
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -10,6 +12,7 @@ import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.kotlin.dsl.add
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.findByType
+import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.property
 import org.gradle.kotlin.dsl.the
 import org.gradle.kotlin.dsl.typeOf
@@ -19,10 +22,15 @@ import org.jetbrains.annotations.VisibleForTesting
 class ModuleKindPlugin : Plugin<Project> {
 
     override fun apply(target: Project): Unit = with(target) {
+        val isGradleSync = provider { gradle.taskGraph.allTasks.any { it.name == "prepareKotlinBuildScriptModel" } }
 
-        val extension = findOrCreateExtension()
-        val isRoot = project.extensions.findByType<ModuleKindConstrainsExtension>() != null
-        val kind = createKindExtension(warnIfMissingKind = !isRoot)
+        val extension = findOrCreateExtension().apply {
+            onMissingKind
+                .convention(isGradleSync.map { if (it) OnMissingKind.WARN else OnMissingKind.FAIL })
+                .finalizeValueOnRead()
+        }
+
+        val kind = createKindExtension(extension.onMissingKind)
 
         dependencies.attributesSchema.attribute(MODULE_KIND_ATTRIBUTE) {
             compatibilityRules.add(ModuleKindCompatibilityRule::class)
@@ -38,22 +46,29 @@ class ModuleKindPlugin : Plugin<Project> {
                 )
             }
         }
+
         plugins.withId("com.android.base") {
-            with(ModuleKindAndroidSupport) {
-                configure(this@ModuleKindPlugin, extension, kind)
+            extensions.getByName<AndroidComponentsExtension<*, *, *>>("androidComponents").onVariants {
+                configureKind(
+                    extension,
+                    kind,
+                    configurations("${it.name}ApiElements", "${it.name}RuntimeElements"),
+                    sequenceOf(it.compileConfiguration, it.runtimeConfiguration),
+                )
             }
         }
     }
 
-    private fun Project.createKindExtension(warnIfMissingKind: Boolean) = objects.property<String>().apply {
-        convention(provider {
-            if (warnIfMissingKind) {
-                logger.warn(
-                    "'moduleKind' not set for project '{}'. i.e. 'moduleKind = \"implementation\"'",
-                    path,
-                )
+    private fun Project.createKindExtension(onMissingKind: Property<OnMissingKind>) = objects.property<String>().apply {
+        convention(onMissingKind.map { onMissingKind ->
+            fun message() = "'moduleKind' not set for project '$path'. i.e. 'moduleKind = \"implementation\"'"
+
+            when (onMissingKind) {
+                OnMissingKind.FAIL -> error(message())
+                OnMissingKind.WARN -> logger.warn(message())
+                OnMissingKind.IGNORE -> {} // no-op
             }
-            MODULE_KIND_MISSING
+            return@map MODULE_KIND_MISSING
         })
         finalizeValueOnRead()
         extensions.add(typeOf<Property<String>>(), "moduleKind", this)
@@ -61,26 +76,26 @@ class ModuleKindPlugin : Plugin<Project> {
 
     @VisibleForTesting
     internal fun Project.findOrCreateExtension() = generateSequence(project, Project::getParent)
-        .mapNotNull { it.extensions.findByType<ModuleKindConstrainsExtension>() }
+        .mapNotNull { it.extensions.findByType<ModuleKindConstraintsExtension>() }
         .ifEmpty { sequenceOf(createExtension()) }
-        .first() as ModuleKindConstrainsExtensionInternal
+        .first() as ModuleKindConstraintsExtensionInternal
 
     private fun Project.createExtension() = extensions.create(
-        ModuleKindConstrainsExtension::class,
-        "moduleKindConstrains",
-        ModuleKindConstrainsExtensionInternal::class
+        ModuleKindConstraintsExtension::class,
+        "moduleKindConstraints",
+        ModuleKindConstraintsExtensionInternal::class
     ).apply {
-        constrains.all {
-            check('|' !in name) { "Character '|' is not allowed in module kind names" }
+        constraints.all {
+            check(name.matches("\\w+".toRegex())) { "Module kind names may only contain word characters" }
 
             compatibleWith.finalizeValueOnRead()
         }
 
-        with((this as ModuleKindConstrainsExtensionInternal).constrainsAsMap) {
-            constrains.all { put(name, compatibleWith) }
+        with((this as ModuleKindConstraintsExtensionInternal).constraintsAsMap) {
+            constraints.all { put(name, compatibleWith) }
             convention(
                 mapOf(
-                    "api" to setOf("api"),
+                    "api" to setOf(),
                     "implementation" to setOf("api"),
                     "monolith" to setOf("monolith", "implementation")
                 )
@@ -90,13 +105,12 @@ class ModuleKindPlugin : Plugin<Project> {
     }
 
     internal fun Project.configureKind(
-        extension: ModuleKindConstrainsExtensionInternal,
+        extension: ModuleKindConstraintsExtensionInternal,
         kind: Provider<String>,
         elementsConfigurations: Sequence<Configuration>,
         classpathConfigurations: Sequence<Configuration>,
     ) {
-
-        val compatibilities = extension.constrainsAsMap
+        val compatibilities = extension.constraintsAsMap
             .zip(kind) { constraints, kind -> constraints.resolveCompatibility(kind) }
             .map { it.joinToString(separator = "|") }
 
