@@ -103,6 +103,7 @@ class ModuleKindPlugin : Plugin<Project> {
         "moduleKindConstraints",
         ModuleKindConstraintsExtensionInternal::class
     ).apply {
+
         constraints.all {
             check(name.matches("\\w+".toRegex())) { "Module kind names may only contain word characters" }
 

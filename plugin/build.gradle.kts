@@ -53,6 +53,13 @@ dependencies {
     "androidTestImplementation"(plugin(libs.plugins.android.library))
 }
 
+components.named<AdhocComponentWithVariants>("java") {
+    val testFixtures by sourceSets
+
+    withVariantsFromConfiguration(configurations.getByName(testFixtures.apiElementsConfigurationName)) { skip() }
+    withVariantsFromConfiguration(configurations.getByName(testFixtures.runtimeElementsConfigurationName)) { skip() }
+}
+
 testing.suites.withType<JvmTestSuite> {
     useJUnitJupiter()
 }
