@@ -1,7 +1,6 @@
 plugins {
     `java-library`
     alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.moduleKind)
 }
 
 moduleKind = "implementation"

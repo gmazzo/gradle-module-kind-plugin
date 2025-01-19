@@ -12,6 +12,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.kotlin.dsl.add
+import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.getByName
@@ -28,6 +29,10 @@ class ModuleKindPlugin : Plugin<Project> {
 
     override fun apply(target: Project): Unit = with(target) {
         val extension = findOrCreateExtension()
+
+        subprojects {
+            apply<ModuleKindPlugin>()
+        }
 
         val kind = createKindExtension(extension.onMissingKind)
 
@@ -138,7 +143,7 @@ class ModuleKindPlugin : Plugin<Project> {
         kind: Provider<String>,
         elementsConfigurations: Sequence<Configuration>,
         classpathConfigurations: Sequence<Configuration>,
-    ) {
+    ) = afterEvaluate {
         val compatibilities = extension.constraintsAsMap
             .zip(kind) { constraints, kind -> constraints.resolveCompatibility(kind) }
             .map { it.joinToString(separator = "|") }

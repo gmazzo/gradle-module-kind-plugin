@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.android.library)
-    alias(libs.plugins.moduleKind)
 }
 
 moduleKind = "api"
