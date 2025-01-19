@@ -37,7 +37,7 @@ interface ModuleKindConstraintsExtension {
     /**
      * Strategy when a module does not define a `moduleKind` property.
      *
-     * Defaults to [OnMissingKind.FAIL_EXCEPT_ROOT] (and [OnMissingKind.WARN] on Idea's Gradle Sync).
+     * Defaults to [OnMissingKind.FAIL] (and [OnMissingKind.WARN] on Idea's Gradle Sync).
      */
     val onMissingKind: Property<OnMissingKind>
 

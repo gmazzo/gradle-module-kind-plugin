@@ -14,4 +14,5 @@ android {
 
 dependencies {
     implementation(projects.demo.featureLoginApi)
+    // implementation(projects.demo.featureListingImpl) // TODO uncomment to see the check fail
 }
