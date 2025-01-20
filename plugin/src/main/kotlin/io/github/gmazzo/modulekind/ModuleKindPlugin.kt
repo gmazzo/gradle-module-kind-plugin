@@ -129,17 +129,18 @@ class ModuleKindPlugin : Plugin<Project> {
             .finalizeValueOnRead()
 
         @Suppress("UNCHECKED_CAST")
-        val constraintsAsMap = (objects.mapProperty(String::class, Set::class) as MapProperty<String, Set<String>>).apply {
-            constraints.all { put(name, compatibleWith) }
-            convention(
-                mapOf(
-                    "api" to setOf(),
-                    "implementation" to setOf("api"),
-                    "monolith" to setOf("monolith", "implementation")
+        val constraintsAsMap =
+            (objects.mapProperty(String::class, Set::class) as MapProperty<String, Set<String>>).apply {
+                constraints.all { put(name, compatibleWith) }
+                convention(
+                    mapOf(
+                        "api" to setOf(),
+                        "implementation" to setOf("api"),
+                        "monolith" to setOf("monolith", "implementation")
+                    )
                 )
-            )
-            finalizeValueOnRead()
-        }
+                finalizeValueOnRead()
+            }
 
         with((this as ModuleKindConstraintsExtensionInternal).constraintsAsMap) {
             value(constraintsAsMap.map {
@@ -162,7 +163,11 @@ class ModuleKindPlugin : Plugin<Project> {
         classpathConfigurations: Sequence<Configuration>,
     ) = afterEvaluate {
         val compatibilities = kind
-            .zip(extension.constraintsAsMap) { kind, constraints -> checkNotNull(constraints[kind]) { "moduleKind '$name' is not an allowed constraint" } }
+            .zip(extension.constraintsAsMap) { kind, constraints ->
+                checkNotNull(constraints[kind]) {
+                    "moduleKind '$kind' must be one of ${constraints.keys.joinToString { "'$it'" }}"
+                }
+            }
             .map { it.joinToString(separator = "|") }
 
         elementsConfigurations.forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, kind) }
