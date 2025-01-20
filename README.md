@@ -40,11 +40,11 @@ chapter in Gradle's manual for a better understanding.
 # Configuration
 By default, the plugin will provide the following compatibility table:
 
-| `moduleKind`   | monolith | api | implementation |
-|----------------|:--------:|:---:|:--------------:|
-| monolith       |    ❌     |  ✅  |       ✅        |
-| implementation |    ❌     |  ✅  |       ❌        |
-| api            |    ❌     |  ❌  |       ❌        |
+| `moduleKind`   | api | implementation | monolith |
+| -------------- | --- | -------------- | -------- |
+| api            | ❌   | ❌              | ❌        |
+| implementation | ✅   | ❌              | ❌        |
+| monolith       | ✅   | ✅              | ✅        |
 
 These restrictions are fully configurable through the `moduleKindConstraints` DSL. 
 The following is the equivalent configuration of the table above:
