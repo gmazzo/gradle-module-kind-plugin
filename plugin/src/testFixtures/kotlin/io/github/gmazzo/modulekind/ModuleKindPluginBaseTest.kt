@@ -35,7 +35,7 @@ abstract class ModuleKindPluginBaseTest(vararg scenarios: TestScenario) {
         val resolved = target.configurations[configuration].incoming
             .artifactView { attributes.attribute(ARTIFACT_TYPE_ATTRIBUTE, "jar") }
             .artifacts.artifacts
-            .mapTo(linkedSetOf()) { (it.id.componentIdentifier as ProjectComponentIdentifier).projectPath }
+            .mapNotNullTo(linkedSetOf()) { (it.id.componentIdentifier as? ProjectComponentIdentifier)?.projectPath }
 
         assertEquals(expected, resolved)
     }
@@ -105,6 +105,11 @@ abstract class ModuleKindPluginBaseTest(vararg scenarios: TestScenario) {
 
             sequenceOf("debug", "release")
                 .map { arrayOf(scenario, project, "$it$configSuffix", dependenciesSet) }
+        } else if (project.plugins.hasPlugin("org.jetbrains.kotlin.multiplatform")) {
+            val configSuffix = configuration.replaceFirstChar { it.uppercase() }
+
+            sequenceOf(arrayOf(scenario, project, "jvm$configSuffix", dependencies.toSet()))
+
         } else
             sequenceOf(arrayOf(scenario, project, configuration, dependencies.toSet()))
 

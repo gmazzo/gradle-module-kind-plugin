@@ -33,6 +33,7 @@ gradlePlugin {
 }
 
 val androidTestSuite = testing.suites.register<JvmTestSuite>("androidTest")
+val kmpTestSuite = testing.suites.register<JvmTestSuite>("kmpTest")
 
 dependencies {
     fun plugin(provider: Provider<PluginDependency>) =
@@ -47,11 +48,15 @@ dependencies {
     testFixturesApi(platform(libs.junit.bom))
     testFixturesApi(libs.junit.params)
     testFixturesCompileOnly(plugin(libs.plugins.android.library))
+    testFixturesCompileOnly(plugin(libs.plugins.kotlin.multiplatform))
 
     testImplementation(testFixtures(project))
 
     "androidTestImplementation"(testFixtures(project))
     "androidTestImplementation"(plugin(libs.plugins.android.library))
+
+    "kmpTestImplementation"(testFixtures(project))
+    "kmpTestImplementation"(plugin(libs.plugins.kotlin.multiplatform))
 }
 
 components.named<AdhocComponentWithVariants>("java") {
@@ -70,7 +75,7 @@ tasks.withType<Test>().configureEach {
 }
 
 tasks.check {
-    dependsOn(androidTestSuite)
+    dependsOn(androidTestSuite, kmpTestSuite)
 }
 
 tasks.jacocoTestReport {
