@@ -38,7 +38,7 @@ It's recommended to read the [Understanding Variant Selection](https://docs.grad
 chapter in Gradle's manual for a better understanding.
 
 # Configuration
-By default, the plugin will provide the following compatibility table:
+By default, the plugin will provide the following compatibility table (which can be printed by running `moduleKindConstraints` task):
 
 | `moduleKind`   | api | implementation | monolith |
 | -------------- | --- | -------------- | -------- |
