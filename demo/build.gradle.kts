@@ -1,5 +1,6 @@
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 plugins {
     alias(libs.plugins.moduleKind)
@@ -19,6 +20,10 @@ allprojects {
     apply(plugin = "maven-publish")
 
     publishing.publications.register<MavenPublication>("default") {
+        plugins.withId("org.jetbrains.kotlin.multiplatform") {
+            the<KotlinMultiplatformExtension>().withSourcesJar()
+            from(components["kotlin"])
+        }
         plugins.withId("java") {
             the<JavaPluginExtension>().withSourcesJar()
             from(components["java"])
@@ -34,7 +39,11 @@ allprojects {
                 allVariants()
                 withSourcesJar()
             }
-            afterEvaluate { from(components["default"]) }
+            afterEvaluate {
+                if (!plugins.hasPlugin("org.jetbrains.kotlin.multiplatform")) {
+                    from(components["default"])
+                }
+            }
         }
     }
 

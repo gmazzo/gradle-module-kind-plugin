@@ -27,6 +27,7 @@ import org.gradle.kotlin.dsl.the
 import org.gradle.kotlin.dsl.typeOf
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.annotations.VisibleForTesting
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 class ModuleKindPlugin : Plugin<Project> {
 
@@ -74,14 +75,11 @@ class ModuleKindPlugin : Plugin<Project> {
         }
 
         plugins.withId("com.android.base") {
-            extensions.getByName<AndroidComponentsExtension<*, *, *>>("androidComponents").onVariants {
-                configureKind(
-                    extension,
-                    kind,
-                    configurations("${it.name}ApiElements", "${it.name}RuntimeElements"),
-                    sequenceOf(it.compileConfiguration, it.runtimeConfiguration),
-                )
-            }
+            with(AndroidSupport) { configure(this@ModuleKindPlugin, extension, kind) }
+        }
+
+        plugins.withId("org.jetbrains.kotlin.multiplatform") {
+            with(KMPSupport) { configure(this@ModuleKindPlugin, extension, kind) }
         }
     }
 
@@ -183,8 +181,9 @@ class ModuleKindPlugin : Plugin<Project> {
         return into
     }
 
-    internal fun Project.configurations(vararg names: String, optional: Boolean = false) = names
+    internal fun Project.configurations(vararg names: String?, optional: Boolean = false) = names
         .asSequence()
+        .filterNotNull()
         .mapNotNull { if (optional) configurations.findByName(it) else configurations.getByName(it) }
 
     private fun Project.cloneConfigForPublication(configuration: Configuration) =
@@ -205,5 +204,49 @@ class ModuleKindPlugin : Plugin<Project> {
             }
             outgoing.artifacts(provider { configuration.artifacts })
         }
+
+    private object AndroidSupport {
+
+        fun Project.configure(
+            plugin: ModuleKindPlugin,
+            extension: ModuleKindConstraintsExtensionInternal,
+            kind: Provider<String>,
+        ) = with(plugin) {
+            extensions.getByName<AndroidComponentsExtension<*, *, *>>("androidComponents").onVariants {
+                configureKind(
+                    extension,
+                    kind,
+                    configurations("${it.name}ApiElements", "${it.name}RuntimeElements"),
+                    sequenceOf(it.compileConfiguration, it.runtimeConfiguration),
+                )
+            }
+        }
+
+    }
+
+    private object KMPSupport {
+
+        fun Project.configure(
+            plugin: ModuleKindPlugin,
+            extension: ModuleKindConstraintsExtensionInternal,
+            kind: Provider<String>,
+        ) = with(plugin) {
+            extensions.getByName<KotlinMultiplatformExtension>("kotlin").targets.all target@{
+                compilations.all comp@{
+                    configureKind(
+                        extension,
+                        kind,
+                        configurations(
+                            this@target.apiElementsConfigurationName,
+                            this@target.runtimeElementsConfigurationName,
+                            optional = true
+                        ),
+                        configurations(compileDependencyConfigurationName, runtimeDependencyConfigurationName),
+                    )
+                }
+            }
+        }
+
+    }
 
 }

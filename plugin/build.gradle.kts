@@ -40,6 +40,7 @@ dependencies {
 
     compileOnly(gradleKotlinDsl())
     compileOnly(plugin(libs.plugins.android.application))
+    compileOnly(plugin(libs.plugins.kotlin.multiplatform))
 
     testFixturesApi(gradleKotlinDsl())
     testFixturesApi(gradleTestKit())
