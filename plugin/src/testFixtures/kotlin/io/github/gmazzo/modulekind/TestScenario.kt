@@ -8,12 +8,14 @@ import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.the
 import org.gradle.testfixtures.ProjectBuilder
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import kotlin.apply as kotlinApply
 
-sealed class TestScenario(android: Boolean = false) {
+sealed class TestScenario(android: Boolean = false, kmp: Boolean = false) {
 
     data object Default : TestScenario()
     data object Android : TestScenario(android = true)
+    data object KMP : TestScenario(kmp = true)
     data object Invalid : TestScenario() {
         val violatingModule = createProject(name = "violatingModule", kind = "implementation", feature1Impl)
     }
@@ -22,8 +24,8 @@ sealed class TestScenario(android: Boolean = false) {
     val feature1Api = createProject(name = "feature1-api", kind = "api")
     val feature1Impl = createProject(name = "feature1-impl", kind = "implementation", feature1Api)
     val feature2Api = createProject(name = "feature2-api", kind = "api", android = android)
-    val feature2Impl = createProject(name = "feature2-impl", kind = "implementation", feature2Api, android = android)
-    val feature3Api = createProject(name = "feature3-api", kind = "api", android = android)
+    val feature2Impl = createProject(name = "feature2-impl", kind = "implementation", feature2Api, android = android, kmp = kmp)
+    val feature3Api = createProject(name = "feature3-api", kind = "api", android = android, kmp = kmp)
     val feature3Impl = createProject(
         name = "feature3-impl",
         kind = "implementation",
@@ -42,18 +44,22 @@ sealed class TestScenario(android: Boolean = false) {
         kind: String?,
         vararg dependsOn: Project,
         android: Boolean = false,
+        kmp: Boolean = false,
     ): Project = ProjectBuilder.builder().withName(name).withParent(rootProject).build().kotlinApply {
         apply(plugin =
             if (android) if (name == "monolith") "com.android.application" else "com.android.library"
+            else if (kmp) "org.jetbrains.kotlin.multiplatform"
             else if (name == "monolith") "java" else "java-library"
         )
         apply(plugin = "io.github.gmazzo.modulekind")
 
         moduleKind.value(kind)
 
+        repositories.mavenCentral()
+
         dependsOn.forEach {
             dependencies {
-                "implementation"(it)
+                (if (kmp) "commonMainImplementation" else "implementation")(it)
             }
         }
 
@@ -61,6 +67,11 @@ sealed class TestScenario(android: Boolean = false) {
             configure<BaseExtension> {
                 compileSdkVersion(30)
                 namespace = project.name.replace('-', '.')
+            }
+        }
+        if (kmp) {
+            configure<KotlinMultiplatformExtension> {
+                jvm()
             }
         }
 

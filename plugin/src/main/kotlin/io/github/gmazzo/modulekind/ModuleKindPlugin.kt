@@ -5,8 +5,6 @@ import io.github.gmazzo.modulekind.ModuleKindConstraintsExtension.OnMissingKind
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
-import org.gradle.api.attributes.Attribute
-import org.gradle.api.component.AdhocComponentWithVariants
 import org.gradle.api.plugins.JvmEcosystemPlugin
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
@@ -17,16 +15,14 @@ import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.getByName
-import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.mapProperty
-import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.property
-import org.gradle.kotlin.dsl.provideDelegate
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.the
 import org.gradle.kotlin.dsl.typeOf
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.annotations.VisibleForTesting
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 class ModuleKindPlugin : Plugin<Project> {
 
@@ -54,34 +50,14 @@ class ModuleKindPlugin : Plugin<Project> {
                     configurations(compileClasspathConfigurationName, runtimeClasspathConfigurationName),
                 )
             }
-
-            plugins.withId("java") {
-                components.named<AdhocComponentWithVariants>("java") {
-                    if (extension.removeKindAttributeFromPublications.get()) {
-                        val main by sourceSets
-
-                        val apiElements = configurations.getByName(main.apiElementsConfigurationName)
-                        val runtimeElements = configurations.getByName(main.runtimeElementsConfigurationName)
-
-                        withVariantsFromConfiguration(apiElements) { skip() }
-                        withVariantsFromConfiguration(runtimeElements) { skip() }
-
-                        addVariantsFromConfiguration(cloneConfigForPublication(apiElements)) { mapToMavenScope("compile") }
-                        addVariantsFromConfiguration(cloneConfigForPublication(runtimeElements)) { mapToMavenScope("runtime") }
-                    }
-                }
-            }
         }
 
         plugins.withId("com.android.base") {
-            extensions.getByName<AndroidComponentsExtension<*, *, *>>("androidComponents").onVariants {
-                configureKind(
-                    extension,
-                    kind,
-                    configurations("${it.name}ApiElements", "${it.name}RuntimeElements"),
-                    sequenceOf(it.compileConfiguration, it.runtimeConfiguration),
-                )
-            }
+            with(AndroidSupport) { configure(this@ModuleKindPlugin, extension, kind) }
+        }
+
+        plugins.withId("org.jetbrains.kotlin.multiplatform") {
+            with(KMPSupport) { configure(this@ModuleKindPlugin, extension, kind) }
         }
     }
 
@@ -122,10 +98,6 @@ class ModuleKindPlugin : Plugin<Project> {
 
         onMissingKind
             .convention(isGradleSync.map { if (it) OnMissingKind.WARN else OnMissingKind.FAIL })
-            .finalizeValueOnRead()
-
-        removeKindAttributeFromPublications
-            .convention(true)
             .finalizeValueOnRead()
 
         @Suppress("UNCHECKED_CAST")
@@ -183,27 +155,53 @@ class ModuleKindPlugin : Plugin<Project> {
         return into
     }
 
-    internal fun Project.configurations(vararg names: String, optional: Boolean = false) = names
+    internal fun Project.configurations(vararg names: String?, optional: Boolean = false) = names
         .asSequence()
+        .filterNotNull()
         .mapNotNull { if (optional) configurations.findByName(it) else configurations.getByName(it) }
 
-    private fun Project.cloneConfigForPublication(configuration: Configuration) =
-        configurations.create("${configuration.name}Publication") {
-            isCanBeConsumed = false
-            isCanBeResolved = false
+    private object AndroidSupport {
 
-            extendsFrom(configuration)
-            attributes {
-                configuration.attributes.keySet().forEach { attr ->
-                    if (attr != MODULE_KIND_ATTRIBUTE) {
-                        @Suppress("UNCHECKED_CAST")
-                        attributeProvider(
-                            attr as Attribute<Any>,
-                            provider { configuration.attributes.getAttribute<Any>(attr) })
-                    }
+        fun Project.configure(
+            plugin: ModuleKindPlugin,
+            extension: ModuleKindConstraintsExtensionInternal,
+            kind: Provider<String>,
+        ) = with(plugin) {
+            extensions.getByName<AndroidComponentsExtension<*, *, *>>("androidComponents").onVariants {
+                configureKind(
+                    extension,
+                    kind,
+                    configurations("${it.name}ApiElements", "${it.name}RuntimeElements"),
+                    sequenceOf(it.compileConfiguration, it.runtimeConfiguration),
+                )
+            }
+        }
+
+    }
+
+    private object KMPSupport {
+
+        fun Project.configure(
+            plugin: ModuleKindPlugin,
+            extension: ModuleKindConstraintsExtensionInternal,
+            kind: Provider<String>,
+        ) = with(plugin) {
+            extensions.getByName<KotlinMultiplatformExtension>("kotlin").targets.all target@{
+                compilations.all comp@{
+                    configureKind(
+                        extension,
+                        kind,
+                        configurations(
+                            this@target.apiElementsConfigurationName,
+                            this@target.runtimeElementsConfigurationName,
+                            optional = true
+                        ),
+                        configurations(compileDependencyConfigurationName, runtimeDependencyConfigurationName),
+                    )
                 }
             }
-            outgoing.artifacts(provider { configuration.artifacts })
         }
+
+    }
 
 }
