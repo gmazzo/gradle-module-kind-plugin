@@ -8,6 +8,7 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.component.AdhocComponentWithVariants
 import org.gradle.api.plugins.JvmEcosystemPlugin
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.SourceSetContainer
@@ -17,9 +18,11 @@ import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.getValue
+import org.gradle.kotlin.dsl.mapProperty
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.property
 import org.gradle.kotlin.dsl.provideDelegate
+import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.the
 import org.gradle.kotlin.dsl.typeOf
 import org.gradle.kotlin.dsl.withType
@@ -107,7 +110,7 @@ class ModuleKindPlugin : Plugin<Project> {
         ModuleKindConstraintsExtension::class,
         "moduleKindConstraints",
         ModuleKindConstraintsExtensionInternal::class
-    ).apply {
+    ).apply extension@{
 
         constraints.all {
             check(name.matches("\\w+".toRegex())) { "Module kind names may only contain word characters" }
@@ -125,7 +128,8 @@ class ModuleKindPlugin : Plugin<Project> {
             .convention(true)
             .finalizeValueOnRead()
 
-        with((this as ModuleKindConstraintsExtensionInternal).constraintsAsMap) {
+        @Suppress("UNCHECKED_CAST")
+        val constraintsAsMap = (objects.mapProperty(String::class, Set::class) as MapProperty<String, Set<String>>).apply {
             constraints.all { put(name, compatibleWith) }
             convention(
                 mapOf(
@@ -136,6 +140,19 @@ class ModuleKindPlugin : Plugin<Project> {
             )
             finalizeValueOnRead()
         }
+
+        with((this as ModuleKindConstraintsExtensionInternal).constraintsAsMap) {
+            value(constraintsAsMap.map {
+                (it.keys + it.values.flatten()).associateWith { kind -> it.resolveCompatibility(kind) }
+            })
+            finalizeValueOnRead()
+            disallowChanges()
+        }
+
+        tasks.register<ModuleKindReportConstraintsTask>("moduleKindConstraints") {
+            this@register.constraintsAsMap.value(this@extension.constraintsAsMap).disallowChanges()
+        }
+
     }
 
     internal fun Project.configureKind(
@@ -145,7 +162,7 @@ class ModuleKindPlugin : Plugin<Project> {
         classpathConfigurations: Sequence<Configuration>,
     ) = afterEvaluate {
         val compatibilities = extension.constraintsAsMap
-            .zip(kind) { constraints, kind -> constraints.resolveCompatibility(kind) }
+            .zip(kind) { constraints, kind -> constraints[kind] }
             .map { it.joinToString(separator = "|") }
 
         elementsConfigurations.forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, kind) }
