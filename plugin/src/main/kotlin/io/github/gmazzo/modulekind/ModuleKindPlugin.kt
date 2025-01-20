@@ -161,8 +161,8 @@ class ModuleKindPlugin : Plugin<Project> {
         elementsConfigurations: Sequence<Configuration>,
         classpathConfigurations: Sequence<Configuration>,
     ) = afterEvaluate {
-        val compatibilities = extension.constraintsAsMap
-            .zip(kind) { constraints, kind -> constraints[kind] }
+        val compatibilities = kind
+            .zip(extension.constraintsAsMap) { kind, constraints -> checkNotNull(constraints[kind]) { "moduleKind '$name' is not an allowed constraint" } }
             .map { it.joinToString(separator = "|") }
 
         elementsConfigurations.forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, kind) }
