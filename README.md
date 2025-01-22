@@ -55,6 +55,14 @@ moduleKindConstraints {
     "monolith" compatibleWith "api" // redundant, since compatibilities are transitive
 }
 ```
+Or in `groovy`:
+```groovy
+moduleKindConstraints {
+    compatibility("implementation", "api")
+    compatibility("monolith", "implementation")
+    compatibility("monolith", "api") // redundant, since compatibilities are transitive
+}
+```
 > [!NOTE]
 > Compatibles are transitive. So, if `monolith` can depend on `implementation` and `implementation` on `api`, 
 > then `monolith` can also depend on `api`.

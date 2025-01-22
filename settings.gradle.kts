@@ -25,5 +25,6 @@ include(
     "demo:feature-listing-impl",
     "demo:feature-login-api",
     "demo:feature-login-impl",
-    "demo:app"
+    "demo:app",
+    "demo-groovy",
 )

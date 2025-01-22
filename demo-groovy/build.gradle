@@ -1,0 +1,14 @@
+plugins {
+    alias(libs.plugins.moduleKind)
+}
+
+moduleKindConstraints {
+    compatibility("api", "domain")
+    compatibility("implementation", "api")
+    compatibility("app", "implementation")
+}
+
+allprojects {
+    group = "org.demo.groovy"
+    version = "0.1.0"
+}
