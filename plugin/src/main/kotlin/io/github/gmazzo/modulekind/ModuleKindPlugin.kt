@@ -1,6 +1,8 @@
 package io.github.gmazzo.modulekind
 
 import com.android.build.api.variant.AndroidComponentsExtension
+import com.android.build.api.variant.HasAndroidTest
+import com.android.build.api.variant.HasUnitTest
 import io.github.gmazzo.modulekind.ModuleKind.Companion.MODULE_KIND_ATTRIBUTE
 import io.github.gmazzo.modulekind.ModuleKind.Companion.MODULE_KIND_MISSING
 import io.github.gmazzo.modulekind.ModuleKindConstraintsExtension.OnMissingKind
@@ -169,13 +171,19 @@ class ModuleKindPlugin : Plugin<Project> {
             extension: ModuleKindConstraintsExtensionInternal,
             kind: Provider<ModuleKind>,
         ) = with(plugin) {
-            extensions.getByName<AndroidComponentsExtension<*, *, *>>("androidComponents").onVariants {
-                configureKind(
-                    extension,
-                    kind,
-                    configurations("${it.name}ApiElements", "${it.name}RuntimeElements"),
-                    sequenceOf(it.compileConfiguration, it.runtimeConfiguration),
-                )
+            extensions.getByName<AndroidComponentsExtension<*, *, *>>("androidComponents").onVariants { variant ->
+                listOfNotNull(
+                    variant,
+                    (variant as? HasUnitTest)?.unitTest,
+                    (variant as? HasAndroidTest)?.androidTest,
+                ).forEach {
+                    configureKind(
+                        extension,
+                        kind,
+                        configurations("${it.name}ApiElements", "${it.name}RuntimeElements", optional = it != variant),
+                        sequenceOf(it.compileConfiguration, it.runtimeConfiguration),
+                    )
+                }
             }
         }
 
