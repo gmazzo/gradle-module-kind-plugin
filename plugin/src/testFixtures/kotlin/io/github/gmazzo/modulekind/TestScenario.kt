@@ -24,13 +24,20 @@ sealed class TestScenario(android: Boolean = false, kmp: Boolean = false) {
     val feature1Api = createProject(name = "feature1-api", kind = "api")
     val feature1Impl = createProject(name = "feature1-impl", kind = "implementation", feature1Api)
     val feature2Api = createProject(name = "feature2-api", kind = "api", android = android)
-    val feature2Impl = createProject(name = "feature2-impl", kind = "implementation", feature2Api, android = android, kmp = kmp)
+    val feature2Impl = createProject(
+        name = "feature2-impl",
+        kind = "implementation",
+        feature2Api,
+        android = android,
+        kmp = kmp,
+        fixtures = true
+    )
     val feature3Api = createProject(name = "feature3-api", kind = "api", android = android, kmp = kmp)
     val feature3Impl = createProject(
         name = "feature3-impl",
         kind = "implementation",
         feature3Api, feature1Api, feature2Api,
-                android = android,
+        android = android,
     )
     val monolith = createProject(
         name = "monolith",
@@ -45,12 +52,17 @@ sealed class TestScenario(android: Boolean = false, kmp: Boolean = false) {
         vararg dependsOn: Project,
         android: Boolean = false,
         kmp: Boolean = false,
+        fixtures: Boolean = false,
     ): Project = ProjectBuilder.builder().withName(name).withParent(rootProject).build().kotlinApply {
-        apply(plugin =
-            if (android) if (name == "monolith") "com.android.application" else "com.android.library"
-            else if (kmp) "org.jetbrains.kotlin.multiplatform"
-            else if (name == "monolith") "java" else "java-library"
+        apply(
+            plugin =
+                if (android) if (name == "monolith") "com.android.application" else "com.android.library"
+                else if (kmp) "org.jetbrains.kotlin.multiplatform"
+                else if (name == "monolith") "java" else "java-library"
         )
+        if (fixtures) {
+            apply(plugin = "java-test-fixtures")
+        }
         apply(plugin = "io.github.gmazzo.modulekind")
 
         moduleKind.value(kind)

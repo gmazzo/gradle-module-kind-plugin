@@ -1,6 +1,8 @@
 package io.github.gmazzo.modulekind
 
 import com.android.build.api.variant.AndroidComponentsExtension
+import io.github.gmazzo.modulekind.ModuleKind.Companion.MODULE_KIND_ATTRIBUTE
+import io.github.gmazzo.modulekind.ModuleKind.Companion.MODULE_KIND_MISSING
 import io.github.gmazzo.modulekind.ModuleKindConstraintsExtension.OnMissingKind
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -33,7 +35,7 @@ class ModuleKindPlugin : Plugin<Project> {
             apply<ModuleKindPlugin>()
         }
 
-        val kind = createKindExtension(extension.onMissingKind)
+        val kind = createKindExtension(extension.onMissingKind).map { ModuleKind(value = it, projectPath = path) }
 
         dependencies.attributesSchema.attribute(MODULE_KIND_ATTRIBUTE) {
             compatibilityRules.add(ModuleKindCompatibilityRule::class)
@@ -130,17 +132,17 @@ class ModuleKindPlugin : Plugin<Project> {
 
     internal fun Project.configureKind(
         extension: ModuleKindConstraintsExtensionInternal,
-        kind: Provider<String>,
+        kind: Provider<ModuleKind>,
         elementsConfigurations: Sequence<Configuration>,
         classpathConfigurations: Sequence<Configuration>,
     ) = afterEvaluate {
         val compatibilities = kind
             .zip(extension.constraintsAsMap) { kind, constraints ->
-                checkNotNull(constraints[kind]) {
+                checkNotNull(constraints[kind.value]) {
                     "moduleKind '$kind' must be one of ${constraints.keys.joinToString { "'$it'" }}"
                 }
             }
-            .map { it.joinToString(separator = "|") }
+            .map { ModuleKind(value = it.joinToString(separator = "|"), projectPath = path) }
 
         elementsConfigurations.forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, kind) }
         classpathConfigurations.forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, compatibilities) }
@@ -165,7 +167,7 @@ class ModuleKindPlugin : Plugin<Project> {
         fun Project.configure(
             plugin: ModuleKindPlugin,
             extension: ModuleKindConstraintsExtensionInternal,
-            kind: Provider<String>,
+            kind: Provider<ModuleKind>,
         ) = with(plugin) {
             extensions.getByName<AndroidComponentsExtension<*, *, *>>("androidComponents").onVariants {
                 configureKind(
@@ -184,7 +186,7 @@ class ModuleKindPlugin : Plugin<Project> {
         fun Project.configure(
             plugin: ModuleKindPlugin,
             extension: ModuleKindConstraintsExtensionInternal,
-            kind: Provider<String>,
+            kind: Provider<ModuleKind>,
         ) = with(plugin) {
             extensions.getByName<KotlinMultiplatformExtension>("kotlin").targets.all target@{
                 compilations.all comp@{

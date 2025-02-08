@@ -1,5 +1,6 @@
 package io.github.gmazzo.modulekind
 
+import io.github.gmazzo.modulekind.ModuleKind.Companion.MODULE_KIND_ATTRIBUTE
 import io.github.gmazzo.modulekind.TestScenario.Companion.invoke
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolveException
@@ -53,7 +54,7 @@ abstract class ModuleKindPluginBaseTest(vararg scenarios: TestScenario) {
 
         val failure = (exception.cause?.cause as VariantSelectionByAttributesException).failure
         assertEquals(ResolutionFailureProblemId.NO_COMPATIBLE_VARIANTS, failure.problemId)
-        assertEquals("api", failure.requestedAttributes.getAttribute(MODULE_KIND_ATTRIBUTE))
+        assertEquals("api", failure.requestedAttributes.getAttribute(MODULE_KIND_ATTRIBUTE)?.value)
     }
 
     @Test
