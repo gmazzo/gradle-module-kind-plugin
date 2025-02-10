@@ -1,10 +1,12 @@
+import org.gradle.api.attributes.TestSuiteType.UNIT_TEST
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.samReceiver)
     alias(libs.plugins.gradle.pluginPublish)
     alias(libs.plugins.publicationsReport)
     `java-test-fixtures`
-    jacoco
+    `jacoco-report-aggregation`
 }
 
 group = "io.github.gmazzo.modulekind"
@@ -32,8 +34,8 @@ gradlePlugin {
     }
 }
 
-val androidTestSuite = testing.suites.register<JvmTestSuite>("androidTest")
-val kmpTestSuite = testing.suites.register<JvmTestSuite>("kmpTest")
+val androidTestSuite = testing.suites.register<JvmTestSuite>("androidTest") { testType = "android-$UNIT_TEST" }
+val kmpTestSuite = testing.suites.register<JvmTestSuite>("kmpTest") { testType = "kmp-$UNIT_TEST" }
 
 dependencies {
     fun plugin(provider: Provider<PluginDependency>) =
@@ -70,15 +72,11 @@ testing.suites.withType<JvmTestSuite> {
     useJUnitJupiter()
 }
 
-tasks.withType<Test>().configureEach {
-    finalizedBy(tasks.jacocoTestReport)
-}
-
 tasks.check {
-    dependsOn(androidTestSuite, kmpTestSuite)
+    dependsOn(tasks.withType<JacocoReport>())
 }
 
-tasks.jacocoTestReport {
+tasks.withType<JacocoReport> {
     reports.xml.required = true
 }
 
