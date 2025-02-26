@@ -4,6 +4,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
+import org.jetbrains.annotations.VisibleForTesting
 
 abstract class ModuleKindReportConstraintsTask : DefaultTask() {
 
@@ -12,6 +13,11 @@ abstract class ModuleKindReportConstraintsTask : DefaultTask() {
 
     @TaskAction
     fun printCompatibilityTable() = buildString {
+        renderCompatibilityTable()
+    }
+
+    @VisibleForTesting
+    internal fun Appendable.renderCompatibilityTable() {
         val constraints = constraintsAsMap.get()
         val moduleKindHeader = "`moduleKind`"
         val firstColumnWidth = (sequenceOf (moduleKindHeader) + constraints.keys).maxOf { it.length  }
@@ -50,6 +56,6 @@ abstract class ModuleKindReportConstraintsTask : DefaultTask() {
             }
             appendLine()
         }
-    }.also(::println)
+    }
 
 }
