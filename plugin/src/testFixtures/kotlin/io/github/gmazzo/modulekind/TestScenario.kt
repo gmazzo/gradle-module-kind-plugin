@@ -1,6 +1,7 @@
 package io.github.gmazzo.modulekind
 
 import com.android.build.gradle.BaseExtension
+import io.github.gmazzo.modulekind.ModuleKindConstraintsExtension.OnMissingKind
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
 import org.gradle.kotlin.dsl.apply
@@ -16,6 +17,15 @@ sealed class TestScenario(android: Boolean = false, kmp: Boolean = false) {
     data object Default : TestScenario()
     data object Android : TestScenario(android = true)
     data object KMP : TestScenario(kmp = true)
+    data object WithMissing : TestScenario() {
+        val feature1Utils = createProject(name = "utils", kind = null, feature1Api)
+
+        init {
+            rootProject.the<ModuleKindConstraintsExtension>().onMissingKind.set(OnMissingKind.WARN)
+            feature1Impl.dependencies { "implementation"(feature1Utils) }
+        }
+    }
+
     data object Invalid : TestScenario() {
         val violatingModule = createProject(name = "violatingModule", kind = "implementation", feature1Impl)
     }

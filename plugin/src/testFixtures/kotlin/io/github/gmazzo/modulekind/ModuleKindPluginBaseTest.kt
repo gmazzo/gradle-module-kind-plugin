@@ -94,7 +94,7 @@ abstract class ModuleKindPluginBaseTest(vararg scenarios: TestScenario) {
         }
     }
 
-    private fun testCaseFor(
+    protected open fun testCaseFor(
         scenario: TestScenario,
         project: Project,
         configuration: String,
@@ -106,6 +106,7 @@ abstract class ModuleKindPluginBaseTest(vararg scenarios: TestScenario) {
 
             sequenceOf("debug", "release")
                 .map { arrayOf(scenario, project, "$it$configSuffix", dependenciesSet) }
+
         } else if (project.plugins.hasPlugin("org.jetbrains.kotlin.multiplatform")) {
             val configSuffix = configuration.replaceFirstChar { it.uppercase() }
 
