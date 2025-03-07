@@ -1,5 +1,3 @@
-import org.gradle.api.attributes.TestSuiteType.UNIT_TEST
-
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.samReceiver)
@@ -34,8 +32,10 @@ gradlePlugin {
     }
 }
 
-val androidTestSuite = testing.suites.register<JvmTestSuite>("androidTest") { testType = "android-$UNIT_TEST" }
-val kmpTestSuite = testing.suites.register<JvmTestSuite>("kmpTest") { testType = "kmp-$UNIT_TEST" }
+testing.suites {
+    register<JvmTestSuite>("androidTest")
+    register<JvmTestSuite>("kmpTest")
+}
 
 dependencies {
     fun plugin(provider: Provider<PluginDependency>) =
