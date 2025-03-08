@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.publicationsReport)
     `java-test-fixtures`
     `jacoco-report-aggregation`
+    signing
 }
 
 group = "io.github.gmazzo.modulekind"
@@ -59,6 +60,15 @@ dependencies {
 
     "kmpTestImplementation"(testFixtures(project))
     "kmpTestImplementation"(plugin(libs.plugins.kotlin.multiplatform))
+}
+
+signing {
+    val signingKey: String? by project
+    val signingPassword: String? by project
+
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    publishing.publications.configureEach(::sign)
+    tasks.withType<Sign>().configureEach { enabled = signingKey != null }
 }
 
 components.named<AdhocComponentWithVariants>("java") {
