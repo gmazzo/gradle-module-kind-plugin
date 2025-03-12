@@ -1,26 +1,30 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.samReceiver)
+    alias(libs.plugins.dokka)
+    alias(libs.plugins.axion.release)
+    alias(libs.plugins.mavenPublish)
     alias(libs.plugins.gradle.pluginPublish)
     alias(libs.plugins.publicationsReport)
     `java-test-fixtures`
     `jacoco-report-aggregation`
-    signing
 }
 
 group = "io.github.gmazzo.modulekind"
-description = "Gradle Module Kind Plugin"
-version = providers
-    .exec { commandLine("git", "describe", "--tags", "--always") }
-    .standardOutput.asText.get().trim().removePrefix("v")
+description = "Constraints a multi-module build dependency graph"
+version = scmVersion.version
 
 java.toolchain.languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get()))
 kotlin.compilerOptions.freeCompilerArgs = listOf("-Xjvm-default=all")
 samWithReceiver.annotation(HasImplicitReceiver::class.qualifiedName!!)
 
+val originUrl = providers
+    .exec { commandLine("git", "remote", "get-url", "origin") }
+    .standardOutput.asText.map { it.trim() }
+
 gradlePlugin {
-    website.set("https://github.com/gmazzo/gradle-module-kind-plugin")
-    vcsUrl.set("https://github.com/gmazzo/gradle-module-kind-plugin")
+    website = originUrl
+    vcsUrl = originUrl
 
     plugins {
         create("modulekind") {
@@ -29,6 +33,37 @@ gradlePlugin {
             implementationClass = "io.github.gmazzo.modulekind.ModuleKindPlugin"
             description = "Constraints a multi-module build dependency graph"
             tags.addAll("api", "implementaiton", "modules", "dependency", "dependencies", "dependency-graph", "constraints")
+        }
+    }
+}
+
+mavenPublishing {
+    publishToMavenCentral("CENTRAL_PORTAL", automaticRelease = true)
+
+    pom {
+        name = "${rootProject.name}-${project.name}"
+        description = provider { project.description }
+        url = originUrl
+
+        licenses {
+            license {
+                name = "MIT License"
+                url = "https://opensource.org/license/mit/"
+            }
+        }
+
+        developers {
+            developer {
+                id = "gmazzo"
+                name = id
+                email = "gmazzo65@gmail.com"
+            }
+        }
+
+        scm {
+            connection = originUrl
+            developerConnection = originUrl
+            url = originUrl
         }
     }
 }
@@ -62,20 +97,17 @@ dependencies {
     "kmpTestImplementation"(plugin(libs.plugins.kotlin.multiplatform))
 }
 
-signing {
-    val signingKey: String? by project
-    val signingPassword: String? by project
-
-    useInMemoryPgpKeys(signingKey, signingPassword)
-    sign(publishing.publications)
-    isRequired = signingKey != null || providers.environmentVariable("GRADLE_PUBLISH_KEY").isPresent
-}
-
-components.named<AdhocComponentWithVariants>("java") {
+components.withType<AdhocComponentWithVariants>().configureEach {
     val testFixtures by sourceSets
 
-    withVariantsFromConfiguration(configurations.getByName(testFixtures.apiElementsConfigurationName)) { skip() }
-    withVariantsFromConfiguration(configurations.getByName(testFixtures.runtimeElementsConfigurationName)) { skip() }
+    afterEvaluate {
+        listOfNotNull(
+            configurations.getByName(testFixtures.apiElementsConfigurationName),
+            configurations.getByName(testFixtures.runtimeElementsConfigurationName),
+            configurations.findByName(testFixtures.sourcesElementsConfigurationName),
+            configurations.findByName(testFixtures.javadocElementsConfigurationName),
+        ).forEach { withVariantsFromConfiguration(it) { skip() } }
+    }
 }
 
 testing.suites.withType<JvmTestSuite> {
@@ -88,6 +120,20 @@ tasks.check {
 
 tasks.withType<JacocoReport> {
     reports.xml.required = true
+}
+
+afterEvaluate {
+    tasks.named<Jar>("javadocJar") {
+        from(tasks.dokkaGeneratePublicationJavadoc)
+    }
+}
+
+tasks.withType<PublishToMavenRepository>().configureEach {
+    mustRunAfter(tasks.publishPlugins)
+}
+
+tasks.publishPlugins {
+    enabled = "$version".matches("\\d+(\\.\\d+)+".toRegex())
 }
 
 tasks.publish {
