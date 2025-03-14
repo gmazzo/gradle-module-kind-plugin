@@ -2,9 +2,9 @@
 
 package io.github.gmazzo.modulekind
 
+import java.io.Serializable
 import org.gradle.api.Named
 import org.gradle.api.attributes.Attribute
-import java.io.Serializable
 
 class ModuleKind(
     val value: String,

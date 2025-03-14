@@ -20,7 +20,7 @@ abstract class ModuleKindReportConstraintsTask : DefaultTask() {
     internal fun Appendable.renderCompatibilityTable() {
         val constraints = constraintsAsMap.get()
         val moduleKindHeader = "`moduleKind`"
-        val firstColumnWidth = (sequenceOf (moduleKindHeader) + constraints.keys).maxOf { it.length  }
+        val firstColumnWidth = (sequenceOf(moduleKindHeader) + constraints.keys).maxOf { it.length }
         val kinds = constraints.entries.sortedBy { (_, value) -> value.size }.map { it.key }
 
         append("| ")
