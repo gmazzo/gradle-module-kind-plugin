@@ -32,7 +32,15 @@ gradlePlugin {
             displayName = name
             implementationClass = "io.github.gmazzo.modulekind.ModuleKindPlugin"
             description = "Constraints a multi-module build dependency graph"
-            tags.addAll("api", "implementaiton", "modules", "dependency", "dependencies", "dependency-graph", "constraints")
+            tags.addAll(
+                "api",
+                "implementaiton",
+                "modules",
+                "dependency",
+                "dependencies",
+                "dependency-graph",
+                "constraints",
+            )
         }
     }
 }

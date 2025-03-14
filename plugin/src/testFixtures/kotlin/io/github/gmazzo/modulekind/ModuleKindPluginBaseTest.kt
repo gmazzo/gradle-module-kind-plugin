@@ -99,7 +99,7 @@ abstract class ModuleKindPluginBaseTest(vararg scenarios: TestScenario) {
         project: Project,
         configuration: String,
         vararg dependencies: Project
-    ) : Sequence<Array<Any>> =
+    ): Sequence<Array<Any>> =
         if (project.plugins.hasPlugin("com.android.base")) {
             val configSuffix = configuration.replaceFirstChar { it.uppercase() }
             val dependenciesSet = dependencies.toSet()

@@ -2,6 +2,7 @@ package io.github.gmazzo.modulekind
 
 import com.android.build.gradle.BaseExtension
 import io.github.gmazzo.modulekind.ModuleKindConstraintsExtension.OnMissingKind
+import kotlin.apply as kotlinApply
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
 import org.gradle.kotlin.dsl.apply
@@ -10,7 +11,6 @@ import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.the
 import org.gradle.testfixtures.ProjectBuilder
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import kotlin.apply as kotlinApply
 
 sealed class TestScenario(android: Boolean = false, kmp: Boolean = false) {
 

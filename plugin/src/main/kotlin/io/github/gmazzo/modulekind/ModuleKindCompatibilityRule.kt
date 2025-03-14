@@ -10,7 +10,8 @@ class ModuleKindCompatibilityRule : AttributeCompatibilityRule<ModuleKind> {
         if (producerValue?.value == MODULE_KIND_MISSING ||
             consumerValue?.value == MODULE_KIND_MISSING ||
             producerValue?.projectPath == consumerValue?.projectPath ||
-            producerValue?.value in consumerValue?.value?.split('|').orEmpty()) {
+            producerValue?.value in consumerValue?.value?.split('|').orEmpty()
+        ) {
             compatible()
         }
     }
