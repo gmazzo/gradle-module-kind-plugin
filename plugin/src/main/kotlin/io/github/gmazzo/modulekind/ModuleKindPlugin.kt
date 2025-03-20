@@ -98,10 +98,8 @@ class ModuleKindPlugin : Plugin<Project> {
             compatibleWith.finalizeValueOnRead()
         }
 
-        val isGradleSync = provider { gradle.taskGraph.allTasks.any { it.name == "prepareKotlinBuildScriptModel" } }
-
         onMissingKind
-            .convention(isGradleSync.map { if (it) OnMissingKind.WARN else OnMissingKind.FAIL })
+            .convention(if (isGradleSync) OnMissingKind.WARN else OnMissingKind.FAIL)
             .finalizeValueOnRead()
 
         @Suppress("UNCHECKED_CAST")
@@ -131,6 +129,9 @@ class ModuleKindPlugin : Plugin<Project> {
         }
 
     }
+
+    private val isGradleSync
+        get() = System.getProperty("idea.sync.active") == "true"
 
     internal fun Project.configureKind(
         extension: ModuleKindConstraintsExtensionInternal,
