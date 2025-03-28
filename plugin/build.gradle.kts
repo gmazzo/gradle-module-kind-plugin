@@ -2,8 +2,8 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.samReceiver)
     alias(libs.plugins.dokka)
-    alias(libs.plugins.axion.release)
     alias(libs.plugins.mavenPublish)
+    alias(libs.plugins.gitVersion)
     alias(libs.plugins.gradle.pluginPublish)
     alias(libs.plugins.publicationsReport)
     `java-test-fixtures`
@@ -12,7 +12,6 @@ plugins {
 
 group = "io.github.gmazzo.modulekind"
 description = "Constraints a multi-module build dependency graph"
-version = scmVersion.version
 
 java.toolchain.languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get()))
 kotlin.compilerOptions.freeCompilerArgs = listOf("-Xjvm-default=all")
