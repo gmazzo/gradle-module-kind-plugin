@@ -5,6 +5,8 @@
 [![Coverage](https://codecov.io/gh/gmazzo/gradle-module-kind-plugin/branch/main/graph/badge.svg?token=D5cDiPWvcS)](https://codecov.io/gh/gmazzo/gradle-module-kind-plugin)
 [![Users](https://img.shields.io/badge/users_by-Sourcegraph-purple)](https://sourcegraph.com/search?q=content:io.github.gmazzo.modulekind+-repo:github.com/gmazzo/gradle-module-kind-plugin)
 
+[![Contributors](https://contrib.rocks/image?repo=gmazzo/gradle-module-kind-plugin)](https://github.com/gmazzo/gradle-module-kind-plugin/graphs/contributors)
+
 # gradle-module-kind-plugin
 
 A Gradle plugin to constrain a multi-module build dependency graph.
