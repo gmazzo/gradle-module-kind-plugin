@@ -14,7 +14,7 @@ group = "io.github.gmazzo.modulekind"
 description = "Constraints a multi-module build dependency graph"
 
 java.toolchain.languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get()))
-kotlin.compilerOptions.freeCompilerArgs = listOf("-Xjvm-default=all")
+kotlin.compilerOptions.freeCompilerArgs = listOf("-Xjvm-default=all-compatibility")
 samWithReceiver.annotation(HasImplicitReceiver::class.qualifiedName!!)
 
 val originUrl = providers
