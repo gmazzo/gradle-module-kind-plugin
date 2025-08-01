@@ -40,7 +40,7 @@ sealed class TestScenario(android: Boolean = false, kmp: Boolean = false) {
         feature2Api,
         android = android,
         kmp = kmp,
-        fixtures = true
+        fixtures = !android
     )
     val feature3Api = createProject(name = "feature3-api", kind = "api", android = android, kmp = kmp)
     val feature3Impl = createProject(
