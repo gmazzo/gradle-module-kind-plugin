@@ -1,3 +1,8 @@
+@file:OptIn(ExperimentalAbiValidation::class)
+
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.samReceiver)
@@ -14,8 +19,12 @@ group = "io.github.gmazzo.modulekind"
 description = "Constraints a multi-module build dependency graph"
 
 java.toolchain.languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get()))
-kotlin.compilerOptions.freeCompilerArgs = listOf("-Xjvm-default=all-compatibility")
 samWithReceiver.annotation(HasImplicitReceiver::class.qualifiedName!!)
+
+kotlin {
+    abiValidation.enabled = true
+    compilerOptions.jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
+}
 
 val originUrl = providers
     .exec { commandLine("git", "remote", "get-url", "origin") }
@@ -137,6 +146,14 @@ afterEvaluate {
 
 tasks.withType<PublishToMavenRepository>().configureEach {
     mustRunAfter(tasks.publishPlugins)
+}
+
+tasks.validatePlugins {
+    enableStricterValidation = true
+}
+
+tasks.check {
+    dependsOn(tasks.checkLegacyAbi)
 }
 
 tasks.publishPlugins {

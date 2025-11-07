@@ -3,7 +3,6 @@ package io.github.gmazzo.modulekind
 import org.gradle.api.Named
 import org.gradle.api.provider.SetProperty
 
-@JvmDefaultWithoutCompatibility
 interface ModuleKindConstraint : Named {
 
     val compatibleWith: SetProperty<String>

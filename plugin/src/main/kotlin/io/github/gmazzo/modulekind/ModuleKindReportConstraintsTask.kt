@@ -4,8 +4,10 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 import org.jetbrains.annotations.VisibleForTesting
 
+@DisableCachingByDefault
 abstract class ModuleKindReportConstraintsTask : DefaultTask() {
 
     @get:Input

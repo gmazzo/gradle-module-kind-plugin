@@ -1,0 +1,60 @@
+public final class io/github/gmazzo/modulekind/ModuleKind : java/io/Serializable, org/gradle/api/Named {
+	public static final field Companion Lio/github/gmazzo/modulekind/ModuleKind$Companion;
+	public static final field MODULE_KIND_MISSING Ljava/lang/String;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getName ()Ljava/lang/String;
+	public final fun getProjectPath ()Ljava/lang/String;
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/github/gmazzo/modulekind/ModuleKind$Companion {
+	public final fun getMODULE_KIND_ATTRIBUTE ()Lorg/gradle/api/attributes/Attribute;
+}
+
+public final class io/github/gmazzo/modulekind/ModuleKindCompatibilityRule : org/gradle/api/attributes/AttributeCompatibilityRule {
+	public fun <init> ()V
+	public synthetic fun execute (Ljava/lang/Object;)V
+	public fun execute (Lorg/gradle/api/attributes/CompatibilityCheckDetails;)V
+}
+
+public abstract interface class io/github/gmazzo/modulekind/ModuleKindConstraint : org/gradle/api/Named {
+	public fun compatibleWith (Lio/github/gmazzo/modulekind/ModuleKindConstraint;)V
+	public fun compatibleWith (Ljava/lang/String;)V
+	public fun compatibleWith ([Lio/github/gmazzo/modulekind/ModuleKindConstraint;)V
+	public fun compatibleWith ([Ljava/lang/String;)V
+	public abstract fun getCompatibleWith ()Lorg/gradle/api/provider/SetProperty;
+}
+
+public abstract interface class io/github/gmazzo/modulekind/ModuleKindConstraintsExtension {
+	public fun compatibility (Ljava/lang/String;Lio/github/gmazzo/modulekind/ModuleKindConstraint;[Lio/github/gmazzo/modulekind/ModuleKindConstraint;)V
+	public fun compatibility (Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)V
+	public fun compatibleWith (Ljava/lang/String;Lio/github/gmazzo/modulekind/ModuleKindConstraint;)V
+	public fun compatibleWith (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun getConstraints ()Lorg/gradle/api/NamedDomainObjectContainer;
+	public abstract fun getOnMissingKind ()Lorg/gradle/api/provider/Property;
+}
+
+public final class io/github/gmazzo/modulekind/ModuleKindConstraintsExtension$OnMissingKind : java/lang/Enum {
+	public static final field FAIL Lio/github/gmazzo/modulekind/ModuleKindConstraintsExtension$OnMissingKind;
+	public static final field IGNORE Lio/github/gmazzo/modulekind/ModuleKindConstraintsExtension$OnMissingKind;
+	public static final field WARN Lio/github/gmazzo/modulekind/ModuleKindConstraintsExtension$OnMissingKind;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/github/gmazzo/modulekind/ModuleKindConstraintsExtension$OnMissingKind;
+	public static fun values ()[Lio/github/gmazzo/modulekind/ModuleKindConstraintsExtension$OnMissingKind;
+}
+
+public final class io/github/gmazzo/modulekind/ModuleKindPlugin : org/gradle/api/Plugin {
+	public fun <init> ()V
+	public synthetic fun apply (Ljava/lang/Object;)V
+	public fun apply (Lorg/gradle/api/Project;)V
+}
+
+public abstract class io/github/gmazzo/modulekind/ModuleKindReportConstraintsTask : org/gradle/api/DefaultTask {
+	public fun <init> ()V
+	public abstract fun getConstraintsAsMap ()Lorg/gradle/api/provider/MapProperty;
+	public final fun printCompatibilityTable ()Ljava/lang/String;
+}
+
