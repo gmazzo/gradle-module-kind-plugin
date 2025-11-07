@@ -3,7 +3,6 @@ package io.github.gmazzo.modulekind
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.provider.Property
 
-@JvmDefaultWithoutCompatibility
 interface ModuleKindConstraintsExtension {
 
     val constraints: NamedDomainObjectContainer<ModuleKindConstraint>
