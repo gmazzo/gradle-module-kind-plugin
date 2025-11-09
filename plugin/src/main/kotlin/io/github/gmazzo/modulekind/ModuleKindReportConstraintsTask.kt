@@ -8,13 +8,13 @@ import org.gradle.work.DisableCachingByDefault
 import org.jetbrains.annotations.VisibleForTesting
 
 @DisableCachingByDefault
-abstract class ModuleKindReportConstraintsTask : DefaultTask() {
+public abstract class ModuleKindReportConstraintsTask : DefaultTask() {
 
     @get:Input
-    abstract val constraintsAsMap: MapProperty<String, Set<String>>
+    public abstract val constraintsAsMap: MapProperty<String, Set<String>>
 
     @TaskAction
-    fun printCompatibilityTable() = buildString {
+    public fun printCompatibilityTable(): String = buildString {
         renderCompatibilityTable()
     }
 

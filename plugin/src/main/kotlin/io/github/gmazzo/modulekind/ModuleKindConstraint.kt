@@ -3,23 +3,23 @@ package io.github.gmazzo.modulekind
 import org.gradle.api.Named
 import org.gradle.api.provider.SetProperty
 
-interface ModuleKindConstraint : Named {
+public interface ModuleKindConstraint : Named {
 
-    val compatibleWith: SetProperty<String>
+    public val compatibleWith: SetProperty<String>
 
-    infix fun compatibleWith(other: String) {
+    public infix fun compatibleWith(other: String) {
         compatibleWith.add(other)
     }
 
-    infix fun compatibleWith(other: ModuleKindConstraint) {
+    public infix fun compatibleWith(other: ModuleKindConstraint) {
         compatibleWith.add(other.name)
     }
 
-    fun compatibleWith(vararg others: String) {
+    public fun compatibleWith(vararg others: String) {
         compatibleWith.addAll(others.toList())
     }
 
-    fun compatibleWith(vararg others: ModuleKindConstraint) {
+    public fun compatibleWith(vararg others: ModuleKindConstraint) {
         compatibleWith.addAll(others.map { it.name })
     }
 
