@@ -24,6 +24,7 @@ samWithReceiver.annotation(HasImplicitReceiver::class.qualifiedName!!)
 kotlin {
     abiValidation.enabled = true
     compilerOptions.jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
+    explicitApi()
 }
 
 val originUrl = providers

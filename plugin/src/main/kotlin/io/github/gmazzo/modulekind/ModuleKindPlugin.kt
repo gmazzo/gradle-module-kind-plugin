@@ -28,7 +28,7 @@ import org.gradle.kotlin.dsl.withType
 import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
-class ModuleKindPlugin : Plugin<Project> {
+public class ModuleKindPlugin : Plugin<Project> {
 
     override fun apply(target: Project): Unit = with(target) {
         val extension = findOrCreateExtension()

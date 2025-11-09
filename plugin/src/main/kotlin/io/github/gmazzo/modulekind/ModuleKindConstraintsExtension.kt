@@ -3,34 +3,34 @@ package io.github.gmazzo.modulekind
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.provider.Property
 
-interface ModuleKindConstraintsExtension {
+public interface ModuleKindConstraintsExtension {
 
-    val constraints: NamedDomainObjectContainer<ModuleKindConstraint>
+    public val constraints: NamedDomainObjectContainer<ModuleKindConstraint>
 
     /**
      * Declares that a module kind of [kind] is compatible with another of kind [compatibleWith] (and possible [andOthers]).
      */
-    fun compatibility(kind: String, compatibleWith: String, vararg andOthers: String) {
+    public fun compatibility(kind: String, compatibleWith: String, vararg andOthers: String) {
         constraints.maybeCreate(kind).compatibleWith(compatibleWith, *andOthers)
     }
 
     /**
      * Declares that a module kind of [kind] is compatible with another of kind [compatibleWith] (and possible [andOthers]).
      */
-    fun compatibility(kind: String, compatibleWith: ModuleKindConstraint, vararg andOthers: ModuleKindConstraint) {
+    public fun compatibility(kind: String, compatibleWith: ModuleKindConstraint, vararg andOthers: ModuleKindConstraint) {
         constraints.maybeCreate(kind).compatibleWith(compatibleWith, *andOthers)
     }
 
     /**
      * Declares that a module kind of [this] is compatible with another of kind [compatibleWith].
      */
-    infix fun String.compatibleWith(other: String) =
+    public infix fun String.compatibleWith(other: String): Unit =
         compatibility(this, other)
 
     /**
      * Declares that a module kind of [this] is compatible with another of kind [compatibleWith].
      */
-    infix fun String.compatibleWith(other: ModuleKindConstraint) =
+    public infix fun String.compatibleWith(other: ModuleKindConstraint): Unit =
         compatibility(this, other)
 
     /**
@@ -38,9 +38,9 @@ interface ModuleKindConstraintsExtension {
      *
      * Defaults to [OnMissingKind.FAIL] (and [OnMissingKind.WARN] on Idea's Gradle Sync).
      */
-    val onMissingKind: Property<OnMissingKind>
+    public val onMissingKind: Property<OnMissingKind>
 
-    enum class OnMissingKind {
+    public enum class OnMissingKind {
         FAIL,
         WARN,
         IGNORE,

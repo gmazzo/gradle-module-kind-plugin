@@ -6,30 +6,30 @@ import java.io.Serializable
 import org.gradle.api.Named
 import org.gradle.api.attributes.Attribute
 
-class ModuleKind(
-    val value: String,
-    val projectPath: String,
+public class ModuleKind(
+    public val value: String,
+    public val projectPath: String,
 ) : Named, Serializable {
 
-    override fun getName() = value
+    override fun getName(): String = value
 
-    override fun hashCode() = value.hashCode()
+    override fun hashCode(): Int = value.hashCode()
 
-    override fun equals(other: Any?) = when (other) {
+    override fun equals(other: Any?): Boolean = when (other) {
         is ModuleKind -> value == other.value || projectPath == other.projectPath
         is String -> value == other
         is Named -> value == other.name
         else -> false
     }
 
-    override fun toString() = value
+    override fun toString(): String = value
 
-    companion object {
+    public companion object {
 
-        val MODULE_KIND_ATTRIBUTE: Attribute<ModuleKind> =
+        public val MODULE_KIND_ATTRIBUTE: Attribute<ModuleKind> =
             Attribute.of("io.github.gmazzo.modulekind", ModuleKind::class.java)
 
-        const val MODULE_KIND_MISSING = "<missing>"
+        public const val MODULE_KIND_MISSING: String = "<missing>"
 
     }
 
