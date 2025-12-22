@@ -2,7 +2,7 @@
 android-compileSDK = "34"
 android-plugin = "8.13.2"
 java = "17"
-kotlin = "2.2.21"
+kotlin = "2.3.0"
 
 [libraries]
 junit-bom = { module = "org.junit:junit-bom", version = "6.0.1" }
