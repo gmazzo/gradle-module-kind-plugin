@@ -1,6 +1,6 @@
 package io.github.gmazzo.modulekind
 
-import com.android.build.gradle.BaseExtension
+import com.android.build.api.dsl.CommonExtension
 import io.github.gmazzo.modulekind.ModuleKindConstraintsExtension.OnMissingKind
 import kotlin.apply as kotlinApply
 import org.gradle.api.Project
@@ -86,8 +86,8 @@ sealed class TestScenario(android: Boolean = false, kmp: Boolean = false) {
         }
 
         if (android) {
-            configure<BaseExtension> {
-                compileSdkVersion(30)
+            configure<CommonExtension> {
+                compileSdk = 30
                 namespace = project.name.replace('-', '.')
             }
         }
