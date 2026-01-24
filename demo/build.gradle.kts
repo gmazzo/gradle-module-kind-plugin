@@ -1,5 +1,5 @@
-import com.android.build.gradle.LibraryExtension
-import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.dsl.LibraryExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 plugins {
@@ -29,7 +29,7 @@ allprojects {
             from(components["java"])
         }
         plugins.withId("com.android.application") {
-            the<BaseAppModuleExtension>().publishing.singleVariant("release") {
+            the<ApplicationExtension>().publishing.singleVariant("release") {
                 withSourcesJar()
             }
             afterEvaluate { from(components["release"]) }
@@ -40,9 +40,7 @@ allprojects {
                 withSourcesJar()
             }
             afterEvaluate {
-                if (!plugins.hasPlugin("org.jetbrains.kotlin.multiplatform")) {
-                    from(components["default"])
-                }
+                from(components["default"])
             }
         }
     }
