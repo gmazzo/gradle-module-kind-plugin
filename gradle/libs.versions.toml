@@ -1,6 +1,6 @@
 [versions]
 android-compileSDK = "34"
-android-plugin = "9.0.0"
+android-plugin = "9.0.1"
 java = "17"
 kotlin = "2.3.10"
 
