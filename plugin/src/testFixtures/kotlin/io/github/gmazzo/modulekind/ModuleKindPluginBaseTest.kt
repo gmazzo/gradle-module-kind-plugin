@@ -57,19 +57,6 @@ abstract class ModuleKindPluginBaseTest(vararg scenarios: TestScenario) {
         assertEquals("api", failure.requestedAttributes.getAttribute(MODULE_KIND_ATTRIBUTE)?.value)
     }
 
-    @Test
-    fun `constraints instance is the same on all modules`() = TestScenario.Default {
-        val expected = rootProject.the<ModuleKindConstraintsExtension>()
-
-        rootProject.allprojects {
-            val actual = with(rootProject.plugins.getPlugin(ModuleKindPlugin::class)) {
-                rootProject.findOrCreateExtension()
-            }
-
-            assertSame(expected, actual)
-        }
-    }
-
     protected fun testCasesFor(vararg scenarios: TestScenario) = scenarios.flatMap { scenario ->
         with(scenario) {
             sequenceOf(

@@ -6,9 +6,15 @@ import com.android.build.api.variant.HasUnitTest
 import io.github.gmazzo.modulekind.ModuleKind.Companion.MODULE_KIND_ATTRIBUTE
 import io.github.gmazzo.modulekind.ModuleKind.Companion.MODULE_KIND_MISSING
 import io.github.gmazzo.modulekind.ModuleKindConstraintsExtension.OnMissingKind
+import javax.inject.Inject
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.configuration.BuildFeatures
+import org.gradle.api.initialization.Settings
+import org.gradle.api.invocation.Gradle
+import org.gradle.api.model.ObjectFactory
+import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.JvmEcosystemPlugin
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
@@ -22,25 +28,49 @@ import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.mapProperty
 import org.gradle.kotlin.dsl.property
 import org.gradle.kotlin.dsl.register
+import org.gradle.kotlin.dsl.registerIfAbsent
 import org.gradle.kotlin.dsl.the
 import org.gradle.kotlin.dsl.typeOf
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
-public class ModuleKindPlugin : Plugin<Project> {
+public class ModuleKindPlugin @Inject constructor(
+    private val gradle: Gradle,
+    buildFeatures: BuildFeatures,
+) : Plugin<ExtensionAware> {
 
-    override fun apply(target: Project): Unit = with(target) {
-        val extension = findOrCreateExtension()
+    private val isolatedProjects = buildFeatures.isolatedProjects.active.get()
 
-        subprojects {
-            apply<ModuleKindPlugin>()
+    override fun apply(target: ExtensionAware) {
+        val service = gradle.sharedServices
+            .registerIfAbsent("moduleKindConstraints", ModuleKindConstraintsService::class)
+            .get()
+
+        target.extensions
+            .add(typeOf<ModuleKindConstraintsExtension>(), "moduleKindConstraints", service)
+
+        when (target) {
+            is Project -> target.configure(service)
+            is Settings -> gradle.beforeProject { apply<ModuleKindPlugin>() }
+        }
+    }
+
+    private fun Project.configure(service: ModuleKindConstraintsService) {
+        if (!isolatedProjects) {
+            subprojects {
+                apply<ModuleKindPlugin>()
+            }
         }
 
-        val kind = createKindExtension(extension.onMissingKind).map { ModuleKind(value = it, projectPath = path) }
+        val kind = createKindExtension(service.onMissingKind).map { ModuleKind(value = it, projectPath = path) }
 
         dependencies.attributesSchema.attribute(MODULE_KIND_ATTRIBUTE) {
             compatibilityRules.add(ModuleKindCompatibilityRule::class)
+        }
+
+        tasks.register<ModuleKindReportConstraintsTask>("moduleKindConstraints") {
+            this@register.constraintsAsMap.value(service.constraintsAsMap).disallowChanges()
         }
 
         plugins.withType<JvmEcosystemPlugin> {
@@ -48,7 +78,7 @@ public class ModuleKindPlugin : Plugin<Project> {
 
             sourceSets.configureEach {
                 configureKind(
-                    extension,
+                    service,
                     kind,
                     configurations(apiElementsConfigurationName, runtimeElementsConfigurationName, optional = true),
                     configurations(compileClasspathConfigurationName, runtimeClasspathConfigurationName),
@@ -57,11 +87,11 @@ public class ModuleKindPlugin : Plugin<Project> {
         }
 
         plugins.withId("com.android.base") {
-            with(AndroidSupport) { configure(this@ModuleKindPlugin, extension, kind) }
+            with(AndroidSupport) { configure(this@ModuleKindPlugin, service, kind) }
         }
 
         plugins.withId("org.jetbrains.kotlin.multiplatform") {
-            with(KMPSupport) { configure(this@ModuleKindPlugin, extension, kind) }
+            with(KMPSupport) { configure(this@ModuleKindPlugin, service, kind) }
         }
     }
 
@@ -80,84 +110,29 @@ public class ModuleKindPlugin : Plugin<Project> {
         extensions.add(typeOf<Property<String>>(), "moduleKind", this)
     }
 
-    @VisibleForTesting
-    internal fun Project.findOrCreateExtension() = generateSequence(project, Project::getParent)
-        .mapNotNull { it.extensions.findByType<ModuleKindConstraintsExtension>() }
-        .ifEmpty { sequenceOf(createExtension()) }
-        .first() as ModuleKindConstraintsExtensionInternal
-
-    private fun Project.createExtension() = extensions.create(
-        ModuleKindConstraintsExtension::class,
-        "moduleKindConstraints",
-        ModuleKindConstraintsExtensionInternal::class
-    ).apply extension@{
-
-        constraints.all {
-            check(name.matches("\\w+".toRegex())) { "Module kind names may only contain word characters" }
-
-            compatibleWith.finalizeValueOnRead()
-        }
-
-        onMissingKind
-            .convention(if (isGradleSync) OnMissingKind.WARN else OnMissingKind.FAIL)
-            .finalizeValueOnRead()
-
-        @Suppress("UNCHECKED_CAST")
-        val constraintsAsMap =
-            (objects.mapProperty(String::class, Set::class) as MapProperty<String, Set<String>>).apply {
-                constraints.all { put(name, compatibleWith) }
-                convention(
-                    mapOf(
-                        "api" to setOf(),
-                        "implementation" to setOf("api"),
-                        "monolith" to setOf("monolith", "implementation")
-                    )
-                )
-                finalizeValueOnRead()
-            }
-
-        with((this as ModuleKindConstraintsExtensionInternal).constraintsAsMap) {
-            value(constraintsAsMap.map {
-                (it.keys + it.values.flatten()).associateWith { kind -> it.resolveCompatibility(kind) }
-            })
-            finalizeValueOnRead()
-            disallowChanges()
-        }
-
-        tasks.register<ModuleKindReportConstraintsTask>("moduleKindConstraints") {
-            this@register.constraintsAsMap.value(this@extension.constraintsAsMap).disallowChanges()
-        }
-
-    }
-
-    private val isGradleSync
-        get() = System.getProperty("idea.sync.active") == "true"
 
     internal fun Project.configureKind(
-        extension: ModuleKindConstraintsExtensionInternal,
+        extension: ModuleKindConstraintsService,
         kind: Provider<ModuleKind>,
         elementsConfigurations: Sequence<Configuration>,
         classpathConfigurations: Sequence<Configuration>,
     ) = afterEvaluate {
         val compatibilities = kind
             .zip(extension.constraintsAsMap) { kind, constraints ->
-                checkNotNull(constraints[kind.value]) {
-                    "moduleKind '$kind' must be one of ${constraints.keys.joinToString { "'$it'" }}"
+                when (val compats = constraints[kind.value]) {
+                    null -> {
+                        val errMessage = "moduleKind '$kind' must be one of ${constraints.keys.joinToString { "'$it'" }}"
+
+                        if (isGradleSync) { logger.error(errMessage); emptySet() }
+                        else error(errMessage)
+                    }
+                    else -> compats
                 }
             }
             .map { ModuleKind(value = it.joinToString(separator = "|"), projectPath = path) }
 
         elementsConfigurations.forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, kind) }
         classpathConfigurations.forEach { it.attributes.attributeProvider(MODULE_KIND_ATTRIBUTE, compatibilities) }
-    }
-
-    private fun Map<String, Set<String>>.resolveCompatibility(
-        forKind: String,
-        into: MutableSet<String> = linkedSetOf(),
-    ): Set<String> {
-        if (forKind == MODULE_KIND_MISSING) return setOf(MODULE_KIND_MISSING)
-        get(forKind)?.forEach { if (into.add(it)) resolveCompatibility(it, into) }
-        return into
     }
 
     internal fun Project.configurations(vararg names: String?, optional: Boolean = false) = names
@@ -169,7 +144,7 @@ public class ModuleKindPlugin : Plugin<Project> {
 
         fun Project.configure(
             plugin: ModuleKindPlugin,
-            extension: ModuleKindConstraintsExtensionInternal,
+            extension: ModuleKindConstraintsService,
             kind: Provider<ModuleKind>,
         ) = with(plugin) {
             extensions.getByName<AndroidComponentsExtension<*, *, *>>("androidComponents").onVariants { variant ->
@@ -194,7 +169,7 @@ public class ModuleKindPlugin : Plugin<Project> {
 
         fun Project.configure(
             plugin: ModuleKindPlugin,
-            extension: ModuleKindConstraintsExtensionInternal,
+            extension: ModuleKindConstraintsService,
             kind: Provider<ModuleKind>,
         ) = with(plugin) {
             extensions.getByName<KotlinMultiplatformExtension>("kotlin").targets.all target@{
@@ -212,6 +187,13 @@ public class ModuleKindPlugin : Plugin<Project> {
                 }
             }
         }
+
+    }
+
+    internal companion object {
+
+        internal val isGradleSync
+            get() = System.getProperty("idea.sync.active") == "true"
 
     }
 

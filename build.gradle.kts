@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.multiplatform) apply false
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.multiplatform) apply false
+    alias(libs.plugins.moduleKind) apply false
     alias(libs.plugins.publicationsReport)
     base
     `maven-publish`
