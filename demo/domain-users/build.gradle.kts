@@ -9,7 +9,7 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(libs.versions.java.get()
 
 kotlin {
     jvm()
-    androidLibrary {
+    android {
         namespace = "org.demo.domain.items"
         compileSdk = libs.versions.android.compileSDK.get().toInt()
     }

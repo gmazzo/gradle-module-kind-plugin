@@ -1,5 +1,6 @@
 @file:OptIn(ExperimentalAbiValidation::class)
 
+import org.gradle.plugin.compatibility.compatibility
 import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
@@ -41,6 +42,12 @@ gradlePlugin {
             displayName = name
             implementationClass = "io.github.gmazzo.modulekind.ModuleKindPlugin"
             description = "Constraints a multi-module build dependency graph"
+            compatibility {
+                features {
+                    configurationCache = true
+                    isolatedProjects = true
+                }
+            }
             tags.addAll(
                 "api",
                 "implementaiton",
@@ -115,7 +122,7 @@ dependencies {
 }
 
 components.withType<AdhocComponentWithVariants>().configureEach {
-    val testFixtures by sourceSets
+    val testFixtures = sourceSets["testFixtures"]
 
     afterEvaluate {
         listOfNotNull(
